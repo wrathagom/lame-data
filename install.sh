@@ -6,6 +6,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PI_DIR="$SCRIPT_DIR/software/raspberry-pi"
+VENV_DIR="$PI_DIR/venv"
 
 echo "==================================="
 echo "  Lame Data - Installation"
@@ -23,7 +24,7 @@ else
 fi
 
 # Create .env from example if it doesn't exist
-echo "[1/4] Configuring environment..."
+echo "[1/5] Configuring environment..."
 if [ ! -f "$PI_DIR/.env" ]; then
     cp "$PI_DIR/.env.example" "$PI_DIR/.env"
     echo "  Created .env from template"
@@ -32,22 +33,33 @@ else
     echo "  .env already exists, skipping"
 fi
 
+# Create virtual environment
+echo ""
+echo "[2/5] Creating Python virtual environment..."
+if [ ! -d "$VENV_DIR" ]; then
+    python3 -m venv "$VENV_DIR"
+    echo "  Created venv at $VENV_DIR"
+else
+    echo "  venv already exists, skipping"
+fi
+
 # Install Python dependencies
 echo ""
-echo "[2/4] Installing Python dependencies..."
-pip3 install -q -r "$PI_DIR/requirements.txt"
+echo "[3/5] Installing Python dependencies..."
+"$VENV_DIR/bin/pip" install -q --upgrade pip
+"$VENV_DIR/bin/pip" install -q -r "$PI_DIR/requirements.txt"
 echo "  Done"
 
 # Make scripts executable
 echo ""
-echo "[3/4] Setting permissions..."
+echo "[4/5] Setting permissions..."
 chmod +x "$PI_DIR/wifi_manager.sh"
 chmod +x "$SCRIPT_DIR/upgrade.sh" 2>/dev/null || true
 echo "  Done"
 
 # Install systemd services
 echo ""
-echo "[4/4] Installing systemd services..."
+echo "[5/5] Installing systemd services..."
 if [ "$SKIP_SYSTEMD" = true ]; then
     echo "  Skipped (run with sudo to install services)"
 else

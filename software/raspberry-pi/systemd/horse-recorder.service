@@ -6,7 +6,7 @@ After=network.target
 Type=simple
 User=pi
 WorkingDirectory=/home/pi/lame-data/software/raspberry-pi
-ExecStart=/usr/bin/python3 /home/pi/lame-data/software/raspberry-pi/horse_recorder.py
+ExecStart=/home/pi/lame-data/software/raspberry-pi/venv/bin/python /home/pi/lame-data/software/raspberry-pi/horse_recorder.py
 Restart=always
 
 [Install]

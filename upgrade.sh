@@ -6,6 +6,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PI_DIR="$SCRIPT_DIR/software/raspberry-pi"
+VENV_DIR="$PI_DIR/venv"
 
 echo "==================================="
 echo "  Lame Data - Upgrade"
@@ -31,7 +32,7 @@ echo "  Done"
 # Update dependencies
 echo ""
 echo "[2/3] Updating dependencies..."
-pip3 install -q -r "$PI_DIR/requirements.txt"
+"$VENV_DIR/bin/pip" install -q -r "$PI_DIR/requirements.txt"
 echo "  Done"
 
 # Restart services
