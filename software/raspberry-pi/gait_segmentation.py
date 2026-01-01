@@ -96,25 +96,31 @@ def segment_gait(magnitude: List[float],
     frequencies = np.array(frequencies)
 
     # Step 4: Detect gait changes within moving sections
-    # Only consider variance/frequency changes when both windows are moving
+    # Look for LOCAL changes in variance/frequency between consecutive windows
     gait_change_score = np.zeros(len(windows))
 
     for i in range(1, len(windows)):
         if is_moving[i] and is_moving[i-1]:
             # Both windows are moving - check for gait change
-            # Variance z-score (local to moving sections)
-            moving_variances = variances[is_moving]
-            if len(moving_variances) > 1 and np.std(moving_variances) > 0:
-                var_zscore = abs(variances[i] - np.mean(moving_variances)) / np.std(moving_variances)
-                var_change = var_zscore > variance_threshold
+
+            # Variance ratio between consecutive windows (detects amplitude changes)
+            # A ratio of 2.0 means variance doubled or halved
+            if variances[i-1] > 0:
+                var_ratio = max(variances[i] / variances[i-1], variances[i-1] / variances[i])
             else:
-                var_change = False
+                var_ratio = 1.0
+
+            # Convert ratio to a score: ratio of 2 = score of 1, ratio of 1.5 = score of 0.5
+            # variance_threshold now acts as the ratio threshold (e.g., 1.5 = 50% change)
+            var_change_score = max(0, (var_ratio - 1) / (variance_threshold - 1)) if variance_threshold > 1 else 0
+            var_change_score = min(var_change_score, 1.0)
 
             # Frequency change
-            freq_change = abs(frequencies[i] - frequencies[i-1]) > frequency_threshold
+            freq_diff = abs(frequencies[i] - frequencies[i-1])
+            freq_change_score = min(freq_diff / frequency_threshold, 1.0) if frequency_threshold > 0 else 0
 
-            # Combined score
-            gait_change_score[i] = 0.6 * float(var_change) + 0.4 * float(freq_change)
+            # Combined score - weight amplitude changes more heavily
+            gait_change_score[i] = 0.7 * var_change_score + 0.3 * freq_change_score
 
     # Step 5: Build segment boundaries
     raw_boundaries = []

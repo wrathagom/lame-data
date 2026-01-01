@@ -173,12 +173,12 @@
                 </div>
                 <div>
                     <div class="slider-label">
-                        <span>Gait Variance</span>
-                        <span class="slider-value" id="varianceValue">2.0</span>
+                        <span>Amplitude Change</span>
+                        <span class="slider-value" id="varianceValue">1.5</span>
                     </div>
-                    <input type="range" id="varianceThreshold" min="0.5" max="4" step="0.1" value="2.0"
+                    <input type="range" id="varianceThreshold" min="1.2" max="3" step="0.1" value="1.5"
                            oninput="document.getElementById('varianceValue').textContent = this.value">
-                    <small>Z-score for gait changes</small>
+                    <small>Ratio to detect (1.5 = 50%)</small>
                 </div>
                 <div>
                     <div class="slider-label">
