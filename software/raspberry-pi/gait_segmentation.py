@@ -127,7 +127,8 @@ def segment_gait(magnitude: List[float],
     raw_confidence.append(1.0)
 
     for i in range(len(windows)):
-        sample_idx = window_centers[i]
+        # Use window start (not center) so marker appears at beginning of new segment
+        sample_idx = window_starts[i]
 
         # Check for movement state change
         if i > 0 and movement_changes[i-1] != 0:
