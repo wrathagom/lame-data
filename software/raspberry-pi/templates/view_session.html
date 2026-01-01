@@ -24,10 +24,11 @@
         }
         .chart-container {
             position: relative;
-            height: 250px;
+            height: 300px;
         }
-        canvas {
-            max-height: 250px;
+        .chart-container-small {
+            position: relative;
+            height: 150px;
         }
         .axis-label {
             display: inline-block;
@@ -36,9 +37,37 @@
             border-radius: 2px;
             margin-right: 0.5rem;
         }
+        .axis-mag { background: rgb(156, 39, 176); }
         .axis-x { background: rgb(255, 99, 132); }
         .axis-y { background: rgb(54, 162, 235); }
         .axis-z { background: rgb(75, 192, 192); }
+        details {
+            margin-top: 1rem;
+        }
+        details summary {
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .xyz-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        @media (min-width: 768px) {
+            .xyz-grid {
+                grid-template-columns: 1fr 1fr 1fr;
+            }
+        }
+        .xyz-chart {
+            background: var(--pico-card-background-color);
+            border-radius: var(--pico-border-radius);
+            padding: 1rem;
+        }
+        .xyz-chart h4 {
+            margin: 0 0 0.5rem 0;
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 <body>
@@ -64,24 +93,34 @@
         </article>
 
         <article>
-            <h3><span class="axis-label axis-x"></span>Acceleration X-Axis</h3>
+            <h3><span class="axis-label axis-mag"></span>Acceleration Magnitude</h3>
             <div class="chart-container">
-                <canvas id="chartX"></canvas>
+                <canvas id="chartMag"></canvas>
             </div>
-        </article>
 
-        <article>
-            <h3><span class="axis-label axis-y"></span>Acceleration Y-Axis</h3>
-            <div class="chart-container">
-                <canvas id="chartY"></canvas>
-            </div>
-        </article>
-
-        <article>
-            <h3><span class="axis-label axis-z"></span>Acceleration Z-Axis</h3>
-            <div class="chart-container">
-                <canvas id="chartZ"></canvas>
-            </div>
+            <details>
+                <summary>Show X/Y/Z Components</summary>
+                <div class="xyz-grid">
+                    <div class="xyz-chart">
+                        <h4><span class="axis-label axis-x"></span>X-Axis</h4>
+                        <div class="chart-container-small">
+                            <canvas id="chartX"></canvas>
+                        </div>
+                    </div>
+                    <div class="xyz-chart">
+                        <h4><span class="axis-label axis-y"></span>Y-Axis</h4>
+                        <div class="chart-container-small">
+                            <canvas id="chartY"></canvas>
+                        </div>
+                    </div>
+                    <div class="xyz-chart">
+                        <h4><span class="axis-label axis-z"></span>Z-Axis</h4>
+                        <div class="chart-container-small">
+                            <canvas id="chartZ"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </details>
         </article>
 
         <footer>
@@ -91,7 +130,8 @@
 
     <script>
         const filename = '{{ filename }}';
-        let chartX, chartY, chartZ;
+        let chartMag, chartX, chartY, chartZ;
+        let sessionData = null;
 
         function loadSessionData() {
             document.getElementById('sessionTitle').setAttribute('aria-busy', 'true');
@@ -99,6 +139,7 @@
             fetch(`/api/session_data/${filename}`)
                 .then(response => response.json())
                 .then(data => {
+                    sessionData = data;
                     document.getElementById('sessionTitle').removeAttribute('aria-busy');
 
                     if (data.sample_count === 0) {
@@ -115,6 +156,7 @@
                     const commonOptions = {
                         responsive: true,
                         maintainAspectRatio: false,
+                        animation: false,
                         plugins: {
                             legend: { display: false }
                         },
@@ -129,6 +171,33 @@
                         }
                     };
 
+                    const smallOptions = {
+                        ...commonOptions,
+                        scales: {
+                            x: { display: false },
+                            y: { display: true }
+                        }
+                    };
+
+                    // Magnitude chart (primary)
+                    chartMag = new Chart(document.getElementById('chartMag'), {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Magnitude',
+                                data: data.magnitude,
+                                borderColor: 'rgb(156, 39, 176)',
+                                backgroundColor: 'rgba(156, 39, 176, 0.1)',
+                                borderWidth: 1,
+                                pointRadius: 0,
+                                fill: true
+                            }]
+                        },
+                        options: commonOptions
+                    });
+
+                    // X/Y/Z charts (smaller, in details)
                     chartX = new Chart(document.getElementById('chartX'), {
                         type: 'line',
                         data: {
@@ -137,12 +206,11 @@
                                 label: 'X',
                                 data: data.accel_x,
                                 borderColor: 'rgb(255, 99, 132)',
-                                backgroundColor: 'rgba(255, 99, 132, 0.1)',
                                 borderWidth: 1,
                                 pointRadius: 0
                             }]
                         },
-                        options: commonOptions
+                        options: smallOptions
                     });
 
                     chartY = new Chart(document.getElementById('chartY'), {
@@ -153,12 +221,11 @@
                                 label: 'Y',
                                 data: data.accel_y,
                                 borderColor: 'rgb(54, 162, 235)',
-                                backgroundColor: 'rgba(54, 162, 235, 0.1)',
                                 borderWidth: 1,
                                 pointRadius: 0
                             }]
                         },
-                        options: commonOptions
+                        options: smallOptions
                     });
 
                     chartZ = new Chart(document.getElementById('chartZ'), {
@@ -169,12 +236,11 @@
                                 label: 'Z',
                                 data: data.accel_z,
                                 borderColor: 'rgb(75, 192, 192)',
-                                backgroundColor: 'rgba(75, 192, 192, 0.1)',
                                 borderWidth: 1,
                                 pointRadius: 0
                             }]
                         },
-                        options: commonOptions
+                        options: smallOptions
                     });
                 })
                 .catch(error => {

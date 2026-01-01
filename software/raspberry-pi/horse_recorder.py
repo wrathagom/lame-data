@@ -5,6 +5,7 @@ import os
 import threading
 import json
 import csv
+import math
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -209,10 +210,11 @@ def get_session_data(filename):
     accel_x = []
     accel_y = []
     accel_z = []
-    
+    magnitude = []
+
     with open(filepath, 'r') as f:
         lines = f.readlines()
-    
+
     # Find where data starts (after # comments and header line)
     data_start_idx = 0
     for i, line in enumerate(lines):
@@ -220,36 +222,41 @@ def get_session_data(filename):
             # This is the header line, data starts next line
             data_start_idx = i + 1
             break
-    
+
     # Parse data lines
     sample_count = 0
     for line in lines[data_start_idx:]:
         if sample_count >= 10000:  # Limit to 10k points
             break
-        
+
         line = line.strip()
         if not line:
             continue
-            
+
         parts = line.split(',')
         if len(parts) >= 6:  # timestamp,device_id,sequence,x,y,z
             try:
+                x = float(parts[3])
+                y = float(parts[4])
+                z = float(parts[5])
                 timestamps.append(parts[0])
-                accel_x.append(float(parts[3]))  # x is column 3
-                accel_y.append(float(parts[4]))  # y is column 4
-                accel_z.append(float(parts[5]))  # z is column 5
+                accel_x.append(x)
+                accel_y.append(y)
+                accel_z.append(z)
+                magnitude.append(math.sqrt(x*x + y*y + z*z))
                 sample_count += 1
             except (ValueError, IndexError) as e:
                 print(f"Error parsing line: {line} - {e}")
                 continue
-    
+
     print(f"Loaded {len(timestamps)} samples from {filename}")
-    
+
     return jsonify({
         'timestamps': timestamps,
         'accel_x': accel_x,
         'accel_y': accel_y,
         'accel_z': accel_z,
+        'magnitude': magnitude,
         'sample_count': len(timestamps)
     })
 
