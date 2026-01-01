@@ -22,10 +22,18 @@ Low-cost (~$150) equine gait analysis system using M5StickC + Raspberry Pi
 3. [Flash to M5StickC](hardware/m5stickc/README.md)
 
 ### Raspberry Pi Server
-1. Copy `software/raspberry-pi/.env.example` to `.env`
-2. Update WiFi credentials
-3. Install dependencies: `pip install -r requirements.txt`
-4. Run: `python horse_recorder.py`
+```bash
+git clone git@github.com:wrathagom/lame-data.git
+cd lame-data
+sudo ./install.sh
+# Edit software/raspberry-pi/.env with your WiFi credentials
+```
+
+### Upgrading
+```bash
+cd lame-data
+sudo ./upgrade.sh
+```
 
 See [full setup guide](docs/getting-started.md) for detailed instructions.
 
