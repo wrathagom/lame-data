@@ -1,0 +1,26 @@
+#ifndef CONFIG_H
+#define CONFIG_H
+
+// WiFi Configuration - PRIORITY ORDER
+struct WiFiNetwork {
+  const char* ssid;
+  const char* password;
+  const char* piIP;
+};
+
+// Try networks in this order (first = highest priority)
+// Copy this file to config.h and update with your credentials
+WiFiNetwork networks[] = {
+  {"YourBarnNetwork", "your_password", "10.42.0.1"},   // Barn/field network
+  {"YourHomeNetwork", "your_password", "192.168.1.100"} // Home network
+};
+const int NUM_NETWORKS = 2;
+
+// Device Configuration - change DEVICE_ID for each sensor (1-5)
+const int DEVICE_ID = 1;
+const char* deviceName = "HorseLeg1";
+
+// UDP Configuration
+const int udpPort = 8888;
+
+#endif

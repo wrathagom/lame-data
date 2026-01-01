@@ -1,0 +1,4 @@
+# Arduino Libraries
+# Install via Arduino Library Manager
+
+M5StickCPlus @ ^0.1.0

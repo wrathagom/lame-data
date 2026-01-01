@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Horse Data Recorder</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-top: 0;
+        }
+        .status {
+            font-size: 24px;
+            font-weight: bold;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+            margin: 15px 0;
+        }
+        .recording {
+            background: #59ADA2;
+            color: white;
+        }
+        .stopped {
+            background: #C44638;
+            color: white;
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        .start-btn {
+            background: #59ADA2;
+            color: white;
+        }
+        .stop-btn {
+            background: #C44638;
+            color: white;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin-top: 10px;
+        }
+        .device-status {
+            background: #e3f2fd;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+        }
+    </style>
+</head>
+<body>
+	<center><h1>EquiMotion</h1></center>
+    <a href="/sessions" style="display: block; text-align: center; margin: 10px 0; color: #2196F3;">📊 View Past Sessions</a>
+
+    
+    <div class="card">
+        <div id="status" class="status stopped">NOT RECORDING</div>
+        
+        <div id="metrics" style="display:none;">
+            <div class="metric">
+                <span>Duration:</span>
+                <span id="duration">0s</span>
+            </div>
+            <div class="metric">
+                <span>Samples:</span>
+                <span id="samples">0</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h2>Session Info</h2>
+        
+        <label for="location">Location on Horse:</label>
+        <select id="location">
+            <option value="left_front">Left Front Leg</option>
+            <option value="right_front">Right Front Leg</option>
+            <option value="left_rear">Left Rear Leg</option>
+            <option value="right_rear">Right Rear Leg</option>
+            <option value="poll">Poll</option>
+            <option value="withers">Withers</option>
+            <option value="girth">Girth</option>
+        </select>
+        
+        <label for="notes">Notes:</label>
+        <textarea id="notes" rows="3" placeholder="e.g., Walk in hand, Trot in hand, Lunge left, etc."></textarea>
+        
+        <button id="startBtn" class="start-btn" onclick="startRecording()">START RECORDING</button>
+        <button id="stopBtn" class="stop-btn" onclick="stopRecording()" disabled>STOP RECORDING</button>
+    </div>
+    
+    <div class="card">
+        <h2>Device Status</h2>
+        <div id="deviceStatus">No devices connected</div>
+    </div>
+    
+    <script>
+        let isRecording = false;
+        
+        function updateStatus() {
+            fetch('/api/status')
+                .then(response => response.json())
+                .then(data => {
+                    isRecording = data.is_recording;
+                    
+                    // Update status display
+                    const statusDiv = document.getElementById('status');
+                    if (isRecording) {
+                        statusDiv.textContent = 'RECORDING';
+                        statusDiv.className = 'status recording';
+                        document.getElementById('metrics').style.display = 'block';
+                        document.getElementById('duration').textContent = Math.floor(data.duration) + 's';
+                        document.getElementById('samples').textContent = data.samples_received;
+                    } else {
+                        statusDiv.textContent = 'NOT RECORDING';
+                        statusDiv.className = 'status stopped';
+                        document.getElementById('metrics').style.display = 'none';
+                    }
+                    
+                    // Update buttons
+                    document.getElementById('startBtn').disabled = isRecording;
+                    document.getElementById('stopBtn').disabled = !isRecording;
+                    document.getElementById('location').disabled = isRecording;
+                    document.getElementById('notes').disabled = isRecording;
+                
+                    // Update device status
+                    const deviceDiv = document.getElementById('deviceStatus');
+                    if (Object.keys(data.device_status).length === 0) {
+                        deviceDiv.innerHTML = 'No devices connected';
+                    } else {
+                        let html = '';
+                        for (const [deviceId, status] of Object.entries(data.device_status)) {
+                            const connectedIcon = status.connected ? '🟢' : '🔴';
+                            const connectedText = status.connected ? 'Connected' : `Disconnected (${status.seconds_ago}s ago)`;
+                            const batteryColor = status.connected ? '#e3f2fd' : '#ffebee';
+        
+                    	   html += `<div class="device-status" style="background: ${batteryColor};">
+                                <strong>${connectedIcon} Device ${deviceId}:</strong> ${connectedText}<br>
+                                Battery: ${status.voltage.toFixed(2)}V (${status.percent.toFixed(0)}%)
+                            </div>`;
+                        }
+                        deviceDiv.innerHTML = html;
+                    }
+
+
+                });
+        }
+        
+        function startRecording() {
+            const location = document.getElementById('location').value;
+            const notes = document.getElementById('notes').value;
+            
+            fetch('/api/start', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({location, notes})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateStatus();
+                }
+            });
+        }
+        
+        function stopRecording() {
+            fetch('/api/stop', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Recording stopped!\nDuration: ${Math.floor(data.duration)}s\nSamples: ${data.samples_recorded}`);
+                    updateStatus();
+                }
+            });
+        }
+        
+        // Update status every second
+        setInterval(updateStatus, 1000);
+        updateStatus();
+    </script>
+</body>
+</html>

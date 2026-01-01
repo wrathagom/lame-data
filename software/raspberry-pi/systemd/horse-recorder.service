@@ -1,0 +1,13 @@
+[Unit]
+Description=Horse Data Recorder Web Interface
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/equi-metre/software/raspberry-pi
+ExecStart=/usr/bin/python3 /home/pi/equi-metre/software/raspberry-pi/horse_recorder.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

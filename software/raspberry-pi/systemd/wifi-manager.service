@@ -1,0 +1,15 @@
+[Unit]
+Description=Auto WiFi Manager
+After=network-online.target NetworkManager.service
+Wants=network-online.target
+Requires=NetworkManager.service
+
+[Service]
+Type=oneshot
+ExecStart=/home/pi/equi-metre/software/raspberry-pi/wifi_manager.sh
+RemainAfterExit=yes
+Restart=on-failure
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target

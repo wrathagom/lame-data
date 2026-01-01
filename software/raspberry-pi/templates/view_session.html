@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>View Session - Horse Data</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="/static/js/chart.umd.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; margin-top: 0; }
+        .back-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #2196F3;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .download-btn {
+            padding: 10px 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            float: right;
+        }
+        canvas {
+            max-height: 300px;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <a href="/sessions" class="back-btn">← Back to Sessions</a>
+    
+    <h1>📊 Session Viewer</h1>
+    
+    <div class="card">
+        <button class="download-btn" onclick="downloadCSV()">⬇️ Download CSV</button>
+        <h2 id="sessionTitle">Loading...</h2>
+        <div id="sessionInfo"></div>
+    </div>
+    
+    <div class="card">
+        <h3>Acceleration X-Axis</h3>
+        <canvas id="chartX"></canvas>
+    </div>
+    
+    <div class="card">
+        <h3>Acceleration Y-Axis</h3>
+        <canvas id="chartY"></canvas>
+    </div>
+    
+    <div class="card">
+        <h3>Acceleration Z-Axis</h3>
+        <canvas id="chartZ"></canvas>
+    </div>
+    
+    <script>
+        const filename = '{{ filename }}';
+        let chartX, chartY, chartZ;
+        
+        function loadSessionData() {
+            fetch(`/api/session_data/${filename}`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Received data:', data);  // DEBUG
+                    console.log('Sample count:', data.sample_count);  // DEBUG
+                    console.log('First few X values:', data.accel_x.slice(0, 5));  // DEBUG
+            
+                    if (data.sample_count === 0) {
+                        alert('No data found in session file!');
+                        return;
+                    }
+            
+                    // Create simplified time labels
+                    const labels = data.timestamps.map((_, i) => i);
+            
+                    // Update info
+                    document.getElementById('sessionTitle').textContent = filename;
+                    document.getElementById('sessionInfo').innerHTML = 
+                        `<p><strong>Total Samples:</strong> ${data.sample_count}</p>`;
+            
+                    // Create charts
+                    const commonOptions = {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            x: { 
+                                display: true,
+                                title: { display: true, text: 'Sample Number' }
+                            },
+                            y: {
+                                title: { display: true, text: 'Acceleration (g)' }
+                            }
+                        }
+                    };
+                    
+                    // X-axis chart
+                    chartX = new Chart(document.getElementById('chartX'), {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'X',
+                                data: data.accel_x,
+                                borderColor: 'rgb(255, 99, 132)',
+                                backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                                borderWidth: 1,
+                                pointRadius: 0
+                            }]
+                        },
+                        options: commonOptions
+                    });
+                    
+                    // Y-axis chart
+                    chartY = new Chart(document.getElementById('chartY'), {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Y',
+                                data: data.accel_y,
+                                borderColor: 'rgb(54, 162, 235)',
+                                backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                                borderWidth: 1,
+                                pointRadius: 0
+                            }]
+                        },
+                        options: commonOptions
+                    });
+                    
+                    // Z-axis chart
+                    chartZ = new Chart(document.getElementById('chartZ'), {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Z',
+                                data: data.accel_z,
+                                borderColor: 'rgb(75, 192, 192)',
+                                backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                                borderWidth: 1,
+                                pointRadius: 0
+                            }]
+                        },
+                        options: commonOptions
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading session data:', error);
+                    document.getElementById('sessionTitle').textContent = 'Error loading session';
+                });
+        }
+        
+        function downloadCSV() {
+            window.location.href = `/api/download/${filename}`;
+        }
+        
+        loadSessionData();
+    </script>
+</body>
+</html>
