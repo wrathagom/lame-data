@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="/static/css/pico.min.css">
     <script src="/static/js/chart.umd.min.js"></script>
-    <script src="/static/js/chartjs-plugin-annotation.min.js"></script>
     <style>
         header {
             text-align: center;
@@ -196,6 +195,50 @@
         const filename = '{{ filename }}';
         let chartMag, chartX, chartY, chartZ;
         let sessionData = null;
+        let currentSegments = null;
+
+        // Custom plugin to draw vertical segment lines
+        const segmentLinesPlugin = {
+            id: 'segmentLines',
+            afterDraw: (chart) => {
+                if (!currentSegments || currentSegments.count <= 1) return;
+
+                const ctx = chart.ctx;
+                const xScale = chart.scales.x;
+                const yScale = chart.scales.y;
+
+                ctx.save();
+
+                // Skip first boundary (always 0)
+                for (let i = 1; i < currentSegments.boundaries.length; i++) {
+                    const sampleIdx = currentSegments.boundaries[i];
+                    const confidence = currentSegments.confidence[i];
+                    const x = xScale.getPixelForValue(sampleIdx);
+
+                    // Draw dashed vertical line
+                    ctx.beginPath();
+                    ctx.setLineDash([6, 4]);
+                    ctx.strokeStyle = `rgba(255, 193, 7, ${0.6 + confidence * 0.3})`;
+                    ctx.lineWidth = 2;
+                    ctx.moveTo(x, yScale.top);
+                    ctx.lineTo(x, yScale.bottom);
+                    ctx.stroke();
+
+                    // Draw label at top
+                    ctx.setLineDash([]);
+                    ctx.fillStyle = 'rgba(255, 193, 7, 0.9)';
+                    const labelText = `Seg ${i + 1}`;
+                    const textWidth = ctx.measureText(labelText).width;
+                    ctx.fillRect(x - textWidth/2 - 4, yScale.top, textWidth + 8, 18);
+                    ctx.fillStyle = '#000';
+                    ctx.font = 'bold 10px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(labelText, x, yScale.top + 13);
+                }
+
+                ctx.restore();
+            }
+        };
 
         function loadSessionData() {
             document.getElementById('sessionTitle').setAttribute('aria-busy', 'true');
@@ -243,7 +286,7 @@
                         }
                     };
 
-                    // Magnitude chart (primary)
+                    // Magnitude chart (primary) with segment lines plugin
                     chartMag = new Chart(document.getElementById('chartMag'), {
                         type: 'line',
                         data: {
@@ -258,7 +301,8 @@
                                 fill: true
                             }]
                         },
-                        options: commonOptions
+                        options: commonOptions,
+                        plugins: [segmentLinesPlugin]
                     });
 
                     // X/Y/Z charts (smaller, in details)
@@ -357,34 +401,8 @@
         }
 
         function updateChartAnnotations(segments) {
-            const annotations = {};
-
-            // Skip first boundary (always 0), create vertical lines for the rest
-            for (let i = 1; i < segments.boundaries.length; i++) {
-                const sampleIdx = segments.boundaries[i];
-                const confidence = segments.confidence[i];
-
-                annotations[`segment${i}`] = {
-                    type: 'line',
-                    xMin: sampleIdx,
-                    xMax: sampleIdx,
-                    borderColor: `rgba(255, 193, 7, ${0.5 + confidence * 0.4})`,
-                    borderWidth: 2,
-                    borderDash: [6, 4],
-                    label: {
-                        display: true,
-                        content: `Segment ${i + 1}`,
-                        position: 'start',
-                        backgroundColor: 'rgba(255, 193, 7, 0.8)',
-                        color: '#000',
-                        font: { size: 10, weight: 'bold' }
-                    }
-                };
-            }
-
-            // Update magnitude chart with annotations
+            currentSegments = segments;
             if (chartMag) {
-                chartMag.options.plugins.annotation = { annotations };
                 chartMag.update();
             }
         }
