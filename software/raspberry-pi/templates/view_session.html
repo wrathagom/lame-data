@@ -1,113 +1,125 @@
 <!DOCTYPE html>
-<html>
+<html lang="en" data-theme="light">
 <head>
-    <title>View Session - Horse Data</title>
+    <title>View Session - Lame Data</title>
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/static/css/pico.min.css">
     <script src="/static/js/chart.umd.min.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background: #f0f0f0;
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
         }
-        .card {
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 20px 0;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        .session-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
         }
-        h1 { color: #333; margin-top: 0; }
-        .back-btn {
-            display: inline-block;
-            padding: 10px 20px;
-            background: #2196F3;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            margin-bottom: 20px;
+        .session-header h2 {
+            margin: 0;
+            word-break: break-all;
         }
-        .download-btn {
-            padding: 10px 20px;
-            background: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            float: right;
+        .chart-container {
+            position: relative;
+            height: 250px;
         }
         canvas {
-            max-height: 300px;
+            max-height: 250px;
         }
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #888;
+        .axis-label {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+            margin-right: 0.5rem;
         }
+        .axis-x { background: rgb(255, 99, 132); }
+        .axis-y { background: rgb(54, 162, 235); }
+        .axis-z { background: rgb(75, 192, 192); }
     </style>
 </head>
 <body>
-    <a href="/sessions" class="back-btn">← Back to Sessions</a>
-    
-    <h1>📊 Session Viewer</h1>
-    
-    <div class="card">
-        <button class="download-btn" onclick="downloadCSV()">⬇️ Download CSV</button>
-        <h2 id="sessionTitle">Loading...</h2>
-        <div id="sessionInfo"></div>
-    </div>
-    
-    <div class="card">
-        <h3>Acceleration X-Axis</h3>
-        <canvas id="chartX"></canvas>
-    </div>
-    
-    <div class="card">
-        <h3>Acceleration Y-Axis</h3>
-        <canvas id="chartY"></canvas>
-    </div>
-    
-    <div class="card">
-        <h3>Acceleration Z-Axis</h3>
-        <canvas id="chartZ"></canvas>
-    </div>
-    
+    <main class="container">
+        <header>
+            <h1>Session Viewer</h1>
+            <nav>
+                <ul>
+                    <li><a href="/sessions">Back to Sessions</a></li>
+                    <li><a href="/">Recorder</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <article>
+            <div class="session-header">
+                <div>
+                    <h2 id="sessionTitle">Loading...</h2>
+                    <div id="sessionInfo"></div>
+                </div>
+                <button onclick="downloadCSV()">Download CSV</button>
+            </div>
+        </article>
+
+        <article>
+            <h3><span class="axis-label axis-x"></span>Acceleration X-Axis</h3>
+            <div class="chart-container">
+                <canvas id="chartX"></canvas>
+            </div>
+        </article>
+
+        <article>
+            <h3><span class="axis-label axis-y"></span>Acceleration Y-Axis</h3>
+            <div class="chart-container">
+                <canvas id="chartY"></canvas>
+            </div>
+        </article>
+
+        <article>
+            <h3><span class="axis-label axis-z"></span>Acceleration Z-Axis</h3>
+            <div class="chart-container">
+                <canvas id="chartZ"></canvas>
+            </div>
+        </article>
+
+        <footer>
+            <small>Lame Data - Open Source Horse Biomechanics</small>
+        </footer>
+    </main>
+
     <script>
         const filename = '{{ filename }}';
         let chartX, chartY, chartZ;
-        
+
         function loadSessionData() {
+            document.getElementById('sessionTitle').setAttribute('aria-busy', 'true');
+
             fetch(`/api/session_data/${filename}`)
                 .then(response => response.json())
                 .then(data => {
-                    console.log('Received data:', data);  // DEBUG
-                    console.log('Sample count:', data.sample_count);  // DEBUG
-                    console.log('First few X values:', data.accel_x.slice(0, 5));  // DEBUG
-            
+                    document.getElementById('sessionTitle').removeAttribute('aria-busy');
+
                     if (data.sample_count === 0) {
-                        alert('No data found in session file!');
+                        document.getElementById('sessionTitle').textContent = 'No data found';
                         return;
                     }
-            
-                    // Create simplified time labels
+
                     const labels = data.timestamps.map((_, i) => i);
-            
-                    // Update info
+
                     document.getElementById('sessionTitle').textContent = filename;
-                    document.getElementById('sessionInfo').innerHTML = 
-                        `<p><strong>Total Samples:</strong> ${data.sample_count}</p>`;
-            
-                    // Create charts
+                    document.getElementById('sessionInfo').innerHTML =
+                        `<p><strong>Total Samples:</strong> ${data.sample_count.toLocaleString()}</p>`;
+
                     const commonOptions = {
                         responsive: true,
-                        maintainAspectRatio: true,
+                        maintainAspectRatio: false,
                         plugins: {
                             legend: { display: false }
                         },
                         scales: {
-                            x: { 
+                            x: {
                                 display: true,
                                 title: { display: true, text: 'Sample Number' }
                             },
@@ -116,8 +128,7 @@
                             }
                         }
                     };
-                    
-                    // X-axis chart
+
                     chartX = new Chart(document.getElementById('chartX'), {
                         type: 'line',
                         data: {
@@ -133,8 +144,7 @@
                         },
                         options: commonOptions
                     });
-                    
-                    // Y-axis chart
+
                     chartY = new Chart(document.getElementById('chartY'), {
                         type: 'line',
                         data: {
@@ -150,8 +160,7 @@
                         },
                         options: commonOptions
                     });
-                    
-                    // Z-axis chart
+
                     chartZ = new Chart(document.getElementById('chartZ'), {
                         type: 'line',
                         data: {
@@ -173,11 +182,11 @@
                     document.getElementById('sessionTitle').textContent = 'Error loading session';
                 });
         }
-        
+
         function downloadCSV() {
             window.location.href = `/api/download/${filename}`;
         }
-        
+
         loadSessionData();
     </script>
 </body>

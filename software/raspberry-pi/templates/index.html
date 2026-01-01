@@ -1,192 +1,185 @@
 <!DOCTYPE html>
-<html>
+<html lang="en" data-theme="light">
 <head>
-    <title>Horse Data Recorder</title>
+    <title>Lame Data</title>
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/static/css/pico.min.css">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            background: #f0f0f0;
-        }
-        .card {
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 20px 0;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #333;
-            margin-top: 0;
-        }
-        .status {
-            font-size: 24px;
+        /* Custom status indicator styles */
+        .status-indicator {
+            font-size: 1.5rem;
             font-weight: bold;
-            padding: 15px;
-            border-radius: 5px;
+            padding: 1rem;
+            border-radius: var(--pico-border-radius);
             text-align: center;
-            margin: 15px 0;
+            margin: 1rem 0;
         }
-        .recording {
-            background: #59ADA2;
-            color: white;
+        .status-recording {
+            background: var(--pico-primary-background);
+            color: var(--pico-primary-inverse);
         }
-        .stopped {
+        .status-stopped {
             background: #C44638;
             color: white;
         }
-        button {
-            width: 100%;
-            padding: 15px;
-            font-size: 18px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            margin: 10px 0;
-        }
-        .start-btn {
-            background: #59ADA2;
-            color: white;
-        }
-        .stop-btn {
-            background: #C44638;
-            color: white;
-        }
-        button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-        input, textarea {
-            width: 100%;
-            padding: 10px;
-            margin: 5px 0;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            box-sizing: border-box;
-        }
-        label {
-            font-weight: bold;
-            display: block;
-            margin-top: 10px;
-        }
-        .device-status {
-            background: #e3f2fd;
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 5px;
-        }
-        .metric {
+        .metric-row {
             display: flex;
             justify-content: space-between;
-            padding: 5px 0;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--pico-muted-border-color);
+        }
+        .metric-row:last-child {
+            border-bottom: none;
+        }
+        .device-card {
+            padding: 1rem;
+            margin: 0.5rem 0;
+            border-radius: var(--pico-border-radius);
+            border-left: 4px solid var(--pico-primary);
+        }
+        .device-connected {
+            background: var(--pico-card-background-color);
+            border-left-color: #2ecc71;
+        }
+        .device-disconnected {
+            background: #fff5f5;
+            border-left-color: #C44638;
+        }
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        .btn-stop {
+            --pico-background-color: #C44638;
+            --pico-border-color: #C44638;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        header h1 {
+            margin-bottom: 0.5rem;
         }
     </style>
 </head>
 <body>
-	<center><h1>Lame Data</h1></center>
-    <a href="/sessions" style="display: block; text-align: center; margin: 10px 0; color: #2196F3;">📊 View Past Sessions</a>
+    <main class="container">
+        <header>
+            <h1>Lame Data</h1>
+            <nav>
+                <ul>
+                    <li><a href="/sessions">View Past Sessions</a></li>
+                </ul>
+            </nav>
+        </header>
 
-    
-    <div class="card">
-        <div id="status" class="status stopped">NOT RECORDING</div>
-        
-        <div id="metrics" style="display:none;">
-            <div class="metric">
-                <span>Duration:</span>
-                <span id="duration">0s</span>
+        <article>
+            <div id="status" class="status-indicator status-stopped">NOT RECORDING</div>
+
+            <div id="metrics" style="display:none;">
+                <div class="metric-row">
+                    <span>Duration:</span>
+                    <strong id="duration">0s</strong>
+                </div>
+                <div class="metric-row">
+                    <span>Samples:</span>
+                    <strong id="samples">0</strong>
+                </div>
             </div>
-            <div class="metric">
-                <span>Samples:</span>
-                <span id="samples">0</span>
+        </article>
+
+        <article>
+            <header>
+                <h2>Session Info</h2>
+            </header>
+
+            <label for="location">Location on Horse</label>
+            <select id="location">
+                <option value="left_front">Left Front Leg</option>
+                <option value="right_front">Right Front Leg</option>
+                <option value="left_rear">Left Rear Leg</option>
+                <option value="right_rear">Right Rear Leg</option>
+                <option value="poll">Poll</option>
+                <option value="withers">Withers</option>
+                <option value="girth">Girth</option>
+            </select>
+
+            <label for="notes">Notes</label>
+            <textarea id="notes" rows="3" placeholder="e.g., Walk in hand, Trot in hand, Lunge left, etc."></textarea>
+
+            <div class="btn-group">
+                <button id="startBtn" onclick="startRecording()">Start Recording</button>
+                <button id="stopBtn" class="btn-stop" onclick="stopRecording()" disabled>Stop Recording</button>
             </div>
-        </div>
-    </div>
-    
-    <div class="card">
-        <h2>Session Info</h2>
-        
-        <label for="location">Location on Horse:</label>
-        <select id="location">
-            <option value="left_front">Left Front Leg</option>
-            <option value="right_front">Right Front Leg</option>
-            <option value="left_rear">Left Rear Leg</option>
-            <option value="right_rear">Right Rear Leg</option>
-            <option value="poll">Poll</option>
-            <option value="withers">Withers</option>
-            <option value="girth">Girth</option>
-        </select>
-        
-        <label for="notes">Notes:</label>
-        <textarea id="notes" rows="3" placeholder="e.g., Walk in hand, Trot in hand, Lunge left, etc."></textarea>
-        
-        <button id="startBtn" class="start-btn" onclick="startRecording()">START RECORDING</button>
-        <button id="stopBtn" class="stop-btn" onclick="stopRecording()" disabled>STOP RECORDING</button>
-    </div>
-    
-    <div class="card">
-        <h2>Device Status</h2>
-        <div id="deviceStatus">No devices connected</div>
-    </div>
-    
+        </article>
+
+        <article>
+            <header>
+                <h2>Device Status</h2>
+            </header>
+            <div id="deviceStatus">
+                <p>No devices connected</p>
+            </div>
+        </article>
+
+        <footer>
+            <small>Lame Data - Open Source Horse Biomechanics</small>
+        </footer>
+    </main>
+
     <script>
         let isRecording = false;
-        
+
         function updateStatus() {
             fetch('/api/status')
                 .then(response => response.json())
                 .then(data => {
                     isRecording = data.is_recording;
-                    
-                    // Update status display
+
                     const statusDiv = document.getElementById('status');
                     if (isRecording) {
                         statusDiv.textContent = 'RECORDING';
-                        statusDiv.className = 'status recording';
+                        statusDiv.className = 'status-indicator status-recording';
                         document.getElementById('metrics').style.display = 'block';
                         document.getElementById('duration').textContent = Math.floor(data.duration) + 's';
-                        document.getElementById('samples').textContent = data.samples_received;
+                        document.getElementById('samples').textContent = data.samples_received.toLocaleString();
                     } else {
                         statusDiv.textContent = 'NOT RECORDING';
-                        statusDiv.className = 'status stopped';
+                        statusDiv.className = 'status-indicator status-stopped';
                         document.getElementById('metrics').style.display = 'none';
                     }
-                    
-                    // Update buttons
+
                     document.getElementById('startBtn').disabled = isRecording;
                     document.getElementById('stopBtn').disabled = !isRecording;
                     document.getElementById('location').disabled = isRecording;
                     document.getElementById('notes').disabled = isRecording;
-                
-                    // Update device status
+
                     const deviceDiv = document.getElementById('deviceStatus');
                     if (Object.keys(data.device_status).length === 0) {
-                        deviceDiv.innerHTML = 'No devices connected';
+                        deviceDiv.innerHTML = '<p>No devices connected</p>';
                     } else {
                         let html = '';
                         for (const [deviceId, status] of Object.entries(data.device_status)) {
-                            const connectedIcon = status.connected ? '🟢' : '🔴';
-                            const connectedText = status.connected ? 'Connected' : `Disconnected (${status.seconds_ago}s ago)`;
-                            const batteryColor = status.connected ? '#e3f2fd' : '#ffebee';
-        
-                    	   html += `<div class="device-status" style="background: ${batteryColor};">
-                                <strong>${connectedIcon} Device ${deviceId}:</strong> ${connectedText}<br>
-                                Battery: ${status.voltage.toFixed(2)}V (${status.percent.toFixed(0)}%)
+                            const stateClass = status.connected ? 'device-connected' : 'device-disconnected';
+                            const stateText = status.connected ? 'Connected' : `Disconnected (${status.seconds_ago}s ago)`;
+                            const stateIcon = status.connected ? '●' : '○';
+
+                            html += `<div class="device-card ${stateClass}">
+                                <strong>${stateIcon} Device ${deviceId}</strong> - ${stateText}<br>
+                                <small>Battery: ${status.voltage.toFixed(2)}V (${status.percent.toFixed(0)}%)</small>
                             </div>`;
                         }
                         deviceDiv.innerHTML = html;
                     }
-
-
                 });
         }
-        
+
         function startRecording() {
             const location = document.getElementById('location').value;
             const notes = document.getElementById('notes').value;
-            
+
             fetch('/api/start', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -199,7 +192,7 @@
                 }
             });
         }
-        
+
         function stopRecording() {
             fetch('/api/stop', {
                 method: 'POST'
@@ -207,13 +200,12 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert(`Recording stopped!\nDuration: ${Math.floor(data.duration)}s\nSamples: ${data.samples_recorded}`);
+                    alert(`Recording stopped!\nDuration: ${Math.floor(data.duration)}s\nSamples: ${data.samples_recorded.toLocaleString()}`);
                     updateStatus();
                 }
             });
         }
-        
-        // Update status every second
+
         setInterval(updateStatus, 1000);
         updateStatus();
     </script>

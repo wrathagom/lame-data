@@ -1,117 +1,108 @@
 <!DOCTYPE html>
-<html>
+<html lang="en" data-theme="light">
 <head>
-    <title>Past Sessions - Horse Data</title>
+    <title>Past Sessions - Lame Data</title>
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/static/css/pico.min.css">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background: #f0f0f0;
-        }
-        .card {
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 20px 0;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        h1 { color: #333; margin-top: 0; }
-        .session-item {
-            background: #f9f9f9;
-            padding: 15px;
-            margin: 10px 0;
-            border-radius: 5px;
-            border-left: 4px solid #4CAF50;
+        .session-card {
+            padding: 1rem;
+            margin: 0.75rem 0;
+            border-radius: var(--pico-border-radius);
+            border-left: 4px solid var(--pico-primary);
+            background: var(--pico-card-background-color);
             cursor: pointer;
-            transition: background 0.2s;
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
         }
-        .session-item:hover {
-            background: #e8f5e9;
+        .session-card:hover {
+            transform: translateX(4px);
+            box-shadow: var(--pico-box-shadow);
         }
         .session-location {
-            font-size: 18px;
             font-weight: bold;
-            color: #2c3e50;
+            font-size: 1.1rem;
+            margin-bottom: 0.25rem;
         }
         .session-notes {
-            color: #555;
-            margin: 5px 0;
+            color: var(--pico-muted-color);
+            margin-bottom: 0.5rem;
         }
         .session-meta {
-            font-size: 12px;
-            color: #888;
-            margin-top: 5px;
-        }
-        .back-btn {
-            display: inline-block;
-            padding: 10px 20px;
-            background: #2196F3;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            margin-bottom: 20px;
+            font-size: 0.85rem;
+            color: var(--pico-muted-color);
         }
         .no-sessions {
             text-align: center;
-            color: #888;
-            padding: 40px;
+            padding: 3rem;
+            color: var(--pico-muted-color);
+        }
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
         }
     </style>
 </head>
 <body>
-    <a href="/" class="back-btn">← Back to Recorder</a>
-    
-    <h1>🐴 Past Sessions</h1>
-    
-    <div class="card">
-        <div id="sessionsList">Loading...</div>
-    </div>
-    
+    <main class="container">
+        <header>
+            <h1>Past Sessions</h1>
+            <nav>
+                <ul>
+                    <li><a href="/">Back to Recorder</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <article>
+            <div id="sessionsList" aria-busy="true">Loading sessions...</div>
+        </article>
+
+        <footer>
+            <small>Lame Data - Open Source Horse Biomechanics</small>
+        </footer>
+    </main>
+
     <script>
         function loadSessions() {
             fetch('/api/sessions')
                 .then(response => response.json())
                 .then(sessions => {
                     const container = document.getElementById('sessionsList');
-                    
+                    container.removeAttribute('aria-busy');
+
                     if (sessions.length === 0) {
                         container.innerHTML = '<div class="no-sessions">No sessions recorded yet</div>';
                         return;
                     }
-                    
+
                     let html = '';
                     sessions.forEach(session => {
                         const meta = session.metadata || {};
                         const date = new Date(session.modified).toLocaleString();
-                        
+                        const location = (meta.location || 'unknown').replace(/_/g, ' ');
+
                         html += `
-                            <div class="session-item" onclick="viewSession('${session.filename}')">
-                                <div class="session-location">
-                                    📍 ${meta.location || 'Unknown Location'}
-                                </div>
-                                <div class="session-notes">
-                                    ${meta.notes || 'No notes'}
-                                </div>
+                            <div class="session-card" onclick="viewSession('${session.filename}')">
+                                <div class="session-location">${location}</div>
+                                <div class="session-notes">${meta.notes || 'No notes'}</div>
                                 <div class="session-meta">
-                                    📅 ${date} | 
-                                    📊 ${meta.samples || 'Unknown'} samples |
-                                    💾 ${(session.size / 1024).toFixed(1)} KB
+                                    ${date} &bull;
+                                    ${meta.samples ? Number(meta.samples).toLocaleString() : 'Unknown'} samples &bull;
+                                    ${(session.size / 1024).toFixed(1)} KB
                                 </div>
                             </div>
                         `;
                     });
-                    
+
                     container.innerHTML = html;
                 });
         }
-        
+
         function viewSession(filename) {
             window.location.href = `/view/${filename}`;
         }
-        
+
         loadSessions();
     </script>
 </body>
