@@ -280,6 +280,7 @@ def segment_session(filename):
         return jsonify({'error': 'File not found'}), 404
 
     # Get parameters from query string
+    movement_threshold = float(request.args.get('movement', 0.02))
     variance_threshold = float(request.args.get('variance', 2.0))
     frequency_threshold = float(request.args.get('frequency', 0.3))
     min_segment = float(request.args.get('min_segment', 2.0))
@@ -316,6 +317,7 @@ def segment_session(filename):
     segments = segment_gait(
         magnitude,
         sample_rate=194,
+        movement_threshold=movement_threshold,
         variance_threshold=variance_threshold,
         frequency_threshold=frequency_threshold,
         min_segment_seconds=min_segment
