@@ -201,6 +201,36 @@
             </div>
             <button onclick="analyzeGait()" id="analyzeBtn">Analyze Gait</button>
             <div id="segmentResults"></div>
+
+            <details id="debugSection" style="margin-top: 1rem; display: none;">
+                <summary>Debug Charts</summary>
+                <div class="xyz-grid" style="grid-template-columns: 1fr 1fr;">
+                    <div class="xyz-chart">
+                        <h4>Variance per Window</h4>
+                        <div class="chart-container-small">
+                            <canvas id="chartVariance"></canvas>
+                        </div>
+                    </div>
+                    <div class="xyz-chart">
+                        <h4>Dominant Frequency (Hz)</h4>
+                        <div class="chart-container-small">
+                            <canvas id="chartFrequency"></canvas>
+                        </div>
+                    </div>
+                    <div class="xyz-chart">
+                        <h4>Movement Detection</h4>
+                        <div class="chart-container-small">
+                            <canvas id="chartMoving"></canvas>
+                        </div>
+                    </div>
+                    <div class="xyz-chart">
+                        <h4>Gait Change Score</h4>
+                        <div class="chart-container-small">
+                            <canvas id="chartGaitScore"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </details>
         </article>
 
         <footer>
@@ -211,6 +241,7 @@
     <script>
         const filename = '{{ filename }}';
         let chartMag, chartX, chartY, chartZ;
+        let chartVariance, chartFrequency, chartMoving, chartGaitScore;
         let sessionData = null;
         let currentSegments = null;
 
@@ -454,6 +485,112 @@
             if (chartMag) {
                 chartMag.update();
             }
+            // Update debug charts
+            if (segments.debug && segments.debug.window_starts.length > 0) {
+                updateDebugCharts(segments.debug, segments.params);
+                document.getElementById('debugSection').style.display = 'block';
+            }
+        }
+
+        function updateDebugCharts(debug, params) {
+            const labels = debug.window_starts;
+            const debugChartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { display: true, title: { display: false } },
+                    y: { display: true }
+                }
+            };
+
+            // Destroy existing charts if they exist
+            if (chartVariance) chartVariance.destroy();
+            if (chartFrequency) chartFrequency.destroy();
+            if (chartMoving) chartMoving.destroy();
+            if (chartGaitScore) chartGaitScore.destroy();
+
+            // Variance chart with threshold line
+            chartVariance = new Chart(document.getElementById('chartVariance'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Variance',
+                        data: debug.variances,
+                        borderColor: 'rgb(54, 162, 235)',
+                        borderWidth: 1,
+                        pointRadius: 0
+                    }, {
+                        label: 'Movement Threshold',
+                        data: Array(labels.length).fill(params.movement_threshold),
+                        borderColor: 'rgba(255, 99, 132, 0.7)',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        pointRadius: 0
+                    }]
+                },
+                options: { ...debugChartOptions, plugins: { legend: { display: true, position: 'bottom' } } }
+            });
+
+            // Frequency chart
+            chartFrequency = new Chart(document.getElementById('chartFrequency'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Frequency',
+                        data: debug.frequencies,
+                        borderColor: 'rgb(75, 192, 192)',
+                        borderWidth: 1,
+                        pointRadius: 0
+                    }]
+                },
+                options: debugChartOptions
+            });
+
+            // Movement detection (boolean as 0/1)
+            chartMoving = new Chart(document.getElementById('chartMoving'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Moving',
+                        data: debug.is_moving.map(v => v ? 1 : 0),
+                        borderColor: 'rgb(40, 167, 69)',
+                        backgroundColor: 'rgba(40, 167, 69, 0.3)',
+                        borderWidth: 1,
+                        pointRadius: 0,
+                        fill: true,
+                        stepped: true
+                    }]
+                },
+                options: { ...debugChartOptions, scales: { ...debugChartOptions.scales, y: { min: 0, max: 1.2 } } }
+            });
+
+            // Gait change score with threshold line
+            chartGaitScore = new Chart(document.getElementById('chartGaitScore'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Gait Score',
+                        data: debug.gait_change_score,
+                        borderColor: 'rgb(255, 193, 7)',
+                        borderWidth: 1,
+                        pointRadius: 0
+                    }, {
+                        label: 'Detection Threshold',
+                        data: Array(labels.length).fill(0.4),
+                        borderColor: 'rgba(255, 99, 132, 0.7)',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        pointRadius: 0
+                    }]
+                },
+                options: { ...debugChartOptions, plugins: { legend: { display: true, position: 'bottom' } } }
+            });
         }
 
         loadSessionData();

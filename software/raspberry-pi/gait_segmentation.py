@@ -192,6 +192,13 @@ def segment_gait(magnitude: List[float],
             'variance_threshold': variance_threshold,
             'frequency_threshold': frequency_threshold,
             'min_segment_seconds': min_segment_seconds
+        },
+        'debug': {
+            'window_starts': window_starts,
+            'variances': variances.tolist(),
+            'frequencies': frequencies.tolist(),
+            'is_moving': is_moving.tolist(),
+            'gait_change_score': gait_change_score.tolist()
         }
     }
 
@@ -216,5 +223,12 @@ def _empty_result(magnitude, sample_rate, movement_threshold,
             'variance_threshold': variance_threshold,
             'frequency_threshold': frequency_threshold,
             'min_segment_seconds': min_segment_seconds
+        },
+        'debug': {
+            'window_starts': [],
+            'variances': [],
+            'frequencies': [],
+            'is_moving': [],
+            'gait_change_score': []
         }
     }
