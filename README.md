@@ -1,4 +1,4 @@
-# Horse Biomechanics Data Logger
+# Lame Data
 
 Low-cost (~$150) equine gait analysis system using M5StickC + Raspberry Pi
 

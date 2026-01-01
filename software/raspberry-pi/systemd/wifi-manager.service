@@ -6,7 +6,7 @@ Requires=NetworkManager.service
 
 [Service]
 Type=oneshot
-ExecStart=/home/pi/equi-metre/software/raspberry-pi/wifi_manager.sh
+ExecStart=/home/pi/lame-data/software/raspberry-pi/wifi_manager.sh
 RemainAfterExit=yes
 Restart=on-failure
 RestartSec=10s
