@@ -8,6 +8,7 @@ import csv
 import math
 from pathlib import Path
 from dotenv import load_dotenv
+from gait_segmentation import segment_gait
 
 # Load configuration from .env file
 SCRIPT_DIR = Path(__file__).parent
@@ -268,6 +269,60 @@ def download_session(filename):
     if os.path.exists(filepath):
         return send_file(filepath, as_attachment=True)
     return jsonify({'error': 'File not found'}), 404
+
+
+@app.route('/api/segment/<filename>')
+def segment_session(filename):
+    """Segment gait with configurable parameters"""
+    filepath = os.path.join(DATA_DIR, filename)
+
+    if not os.path.exists(filepath):
+        return jsonify({'error': 'File not found'}), 404
+
+    # Get parameters from query string
+    variance_threshold = float(request.args.get('variance', 2.0))
+    frequency_threshold = float(request.args.get('frequency', 0.3))
+    min_segment = float(request.args.get('min_segment', 2.0))
+
+    # Load magnitude data
+    magnitude = []
+
+    with open(filepath, 'r') as f:
+        lines = f.readlines()
+
+    # Find where data starts
+    data_start_idx = 0
+    for i, line in enumerate(lines):
+        if not line.startswith('#'):
+            data_start_idx = i + 1
+            break
+
+    # Parse and calculate magnitude
+    for line in lines[data_start_idx:]:
+        line = line.strip()
+        if not line:
+            continue
+        parts = line.split(',')
+        if len(parts) >= 6:
+            try:
+                x = float(parts[3])
+                y = float(parts[4])
+                z = float(parts[5])
+                magnitude.append(math.sqrt(x*x + y*y + z*z))
+            except (ValueError, IndexError):
+                continue
+
+    # Run segmentation
+    segments = segment_gait(
+        magnitude,
+        sample_rate=194,
+        variance_threshold=variance_threshold,
+        frequency_threshold=frequency_threshold,
+        min_segment_seconds=min_segment
+    )
+
+    return jsonify(segments)
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=WEB_PORT, debug=False)

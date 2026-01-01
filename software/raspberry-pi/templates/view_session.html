@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="/static/css/pico.min.css">
     <script src="/static/js/chart.umd.min.js"></script>
+    <script src="/static/js/chartjs-plugin-annotation.min.js"></script>
     <style>
         header {
             text-align: center;
@@ -68,6 +69,37 @@
             margin: 0 0 0.5rem 0;
             font-size: 0.9rem;
         }
+        .slider-group {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        @media (min-width: 768px) {
+            .slider-group {
+                grid-template-columns: 1fr 1fr 1fr;
+            }
+        }
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.25rem;
+        }
+        .slider-value {
+            font-weight: bold;
+            color: var(--pico-primary);
+        }
+        #segmentResults {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: var(--pico-card-background-color);
+            border-radius: var(--pico-border-radius);
+            border-left: 4px solid var(--pico-primary);
+        }
+        #segmentResults:empty {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -121,6 +153,38 @@
                     </div>
                 </div>
             </details>
+        </article>
+
+        <article>
+            <h3>Gait Analysis</h3>
+            <div class="slider-group">
+                <div>
+                    <div class="slider-label">
+                        <span>Variance Threshold</span>
+                        <span class="slider-value" id="varianceValue">2.0</span>
+                    </div>
+                    <input type="range" id="varianceThreshold" min="0.5" max="4" step="0.1" value="2.0"
+                           oninput="document.getElementById('varianceValue').textContent = this.value">
+                </div>
+                <div>
+                    <div class="slider-label">
+                        <span>Frequency Threshold (Hz)</span>
+                        <span class="slider-value" id="frequencyValue">0.3</span>
+                    </div>
+                    <input type="range" id="frequencyThreshold" min="0.1" max="1" step="0.05" value="0.3"
+                           oninput="document.getElementById('frequencyValue').textContent = this.value">
+                </div>
+                <div>
+                    <div class="slider-label">
+                        <span>Min Segment (sec)</span>
+                        <span class="slider-value" id="minSegmentValue">2.0</span>
+                    </div>
+                    <input type="range" id="minSegment" min="0.5" max="5" step="0.5" value="2.0"
+                           oninput="document.getElementById('minSegmentValue').textContent = this.value">
+                </div>
+            </div>
+            <button onclick="analyzeGait()" id="analyzeBtn">Analyze Gait</button>
+            <div id="segmentResults"></div>
         </article>
 
         <footer>
@@ -251,6 +315,78 @@
 
         function downloadCSV() {
             window.location.href = `/api/download/${filename}`;
+        }
+
+        function analyzeGait() {
+            const btn = document.getElementById('analyzeBtn');
+            btn.setAttribute('aria-busy', 'true');
+            btn.disabled = true;
+
+            const params = new URLSearchParams({
+                variance: document.getElementById('varianceThreshold').value,
+                frequency: document.getElementById('frequencyThreshold').value,
+                min_segment: document.getElementById('minSegment').value
+            });
+
+            fetch(`/api/segment/${filename}?${params}`)
+                .then(r => r.json())
+                .then(segments => {
+                    btn.removeAttribute('aria-busy');
+                    btn.disabled = false;
+
+                    updateChartAnnotations(segments);
+
+                    const resultsDiv = document.getElementById('segmentResults');
+                    if (segments.count <= 1) {
+                        resultsDiv.innerHTML = '<strong>No gait changes detected.</strong> Try lowering the thresholds.';
+                    } else {
+                        let html = `<strong>Found ${segments.count} gait segments</strong><br>`;
+                        html += '<small>Boundaries at: ';
+                        html += segments.times.slice(1).map(t => t.toFixed(1) + 's').join(', ');
+                        html += '</small>';
+                        resultsDiv.innerHTML = html;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error analyzing gait:', error);
+                    btn.removeAttribute('aria-busy');
+                    btn.disabled = false;
+                    document.getElementById('segmentResults').innerHTML =
+                        '<strong>Error analyzing gait.</strong> Check console for details.';
+                });
+        }
+
+        function updateChartAnnotations(segments) {
+            const annotations = {};
+
+            // Skip first boundary (always 0), create vertical lines for the rest
+            for (let i = 1; i < segments.boundaries.length; i++) {
+                const sampleIdx = segments.boundaries[i];
+                const confidence = segments.confidence[i];
+
+                annotations[`segment${i}`] = {
+                    type: 'line',
+                    xMin: sampleIdx,
+                    xMax: sampleIdx,
+                    borderColor: `rgba(255, 193, 7, ${0.5 + confidence * 0.4})`,
+                    borderWidth: 2,
+                    borderDash: [6, 4],
+                    label: {
+                        display: true,
+                        content: `Segment ${i + 1}`,
+                        position: 'start',
+                        backgroundColor: 'rgba(255, 193, 7, 0.8)',
+                        color: '#000',
+                        font: { size: 10, weight: 'bold' }
+                    }
+                };
+            }
+
+            // Update magnitude chart with annotations
+            if (chartMag) {
+                chartMag.options.plugins.annotation = { annotations };
+                chartMag.update();
+            }
         }
 
         loadSessionData();
