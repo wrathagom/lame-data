@@ -111,8 +111,17 @@ else
     systemctl stop horse-recorder 2>/dev/null || true
     systemctl stop wifi-manager 2>/dev/null || true
 
-    cp "$PI_DIR/systemd/horse-recorder.service" /etc/systemd/system/
-    cp "$PI_DIR/systemd/wifi-manager.service" /etc/systemd/system/
+    # Get the user who owns the repo (not root, even if running with sudo)
+    REPO_OWNER=$(stat -c '%U' "$SCRIPT_DIR")
+
+    # Install service files with correct paths
+    sed -e "s|/home/pi/lame-data|$SCRIPT_DIR|g" \
+        -e "s|User=pi|User=$REPO_OWNER|g" \
+        "$PI_DIR/systemd/horse-recorder.service" > /etc/systemd/system/horse-recorder.service
+
+    sed -e "s|/home/pi/lame-data|$SCRIPT_DIR|g" \
+        "$PI_DIR/systemd/wifi-manager.service" > /etc/systemd/system/wifi-manager.service
+
     systemctl daemon-reload
     systemctl enable horse-recorder wifi-manager
     echo "  Services installed and enabled"
