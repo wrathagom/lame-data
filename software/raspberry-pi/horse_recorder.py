@@ -122,7 +122,7 @@ def start_recording():
     notes = data.get('notes', '')
     
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"{DATA_DIR}session_{timestamp}_{location}.csv"
+    filename = os.path.join(DATA_DIR, f"session_{timestamp}_{location}.csv")
     
     session_file = open(filename, 'w')
     session_file.write(f"# Location: {location}\n")
