@@ -11,7 +11,7 @@ struct WiFiNetwork {
 // Try networks in this order (first = highest priority)
 // Copy this file to config.h and update with your credentials
 WiFiNetwork networks[] = {
-  {"YourBarnNetwork", "your_password", "10.42.0.1"},   // Barn/field network
+  {"HorseNet", "Horse12345", "10.42.0.1"},             // Barn/field network (Pi hotspot)
   {"YourHomeNetwork", "your_password", "192.168.1.100"} // Home network
 };
 const int NUM_NETWORKS = 2;

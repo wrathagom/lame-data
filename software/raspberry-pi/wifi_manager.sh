@@ -64,8 +64,8 @@ start_client_mode() {
     
     # Connect to home network
     if ! nmcli connection up "$HOME_SSID" 2>/dev/null; then
-        echo "Connection profile not found, trying SSID..."
-        nmcli device wifi connect "$HOME_SSID"
+        echo "Connection profile not found, connecting with password..."
+        nmcli device wifi connect "$HOME_SSID" password "$HOME_PASSWORD"
     fi
     
     sleep 5
