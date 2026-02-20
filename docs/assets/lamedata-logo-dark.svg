@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 120" width="360" height="120">
+  <rect width="360" height="120" rx="8" fill="#0d0d0d"/>
+
+  <!-- Radar chart icon -->
+  <g transform="translate(30, 10)">
+    <svg width="100" height="100" viewBox="0 0 100 100">
+      <!-- Grid lines -->
+      <polygon points="50,15 79.5,32.5 79.5,67.5 50,85 20.5,67.5 20.5,32.5" fill="none" stroke="#2a2a2a" stroke-width="0.8"/>
+      <polygon points="50,27 68,36 68,64 50,73 32,64 32,36" fill="none" stroke="#2a2a2a" stroke-width="0.8"/>
+      <polygon points="50,38.5 57,43 57,57 50,61.5 43,57 43,43" fill="none" stroke="#2a2a2a" stroke-width="0.8"/>
+      <!-- Axes -->
+      <line x1="50" y1="50" x2="50" y2="15" stroke="#1e1e1e" stroke-width="0.6"/>
+      <line x1="50" y1="50" x2="79.5" y2="32.5" stroke="#1e1e1e" stroke-width="0.6"/>
+      <line x1="50" y1="50" x2="79.5" y2="67.5" stroke="#1e1e1e" stroke-width="0.6"/>
+      <line x1="50" y1="50" x2="50" y2="85" stroke="#1e1e1e" stroke-width="0.6"/>
+      <line x1="50" y1="50" x2="20.5" y2="67.5" stroke="#1e1e1e" stroke-width="0.6"/>
+      <line x1="50" y1="50" x2="20.5" y2="32.5" stroke="#1e1e1e" stroke-width="0.6"/>
+      <!-- Axis dots -->
+      <circle cx="50" cy="15" r="2" fill="#333"/>
+      <circle cx="79.5" cy="32.5" r="2" fill="#333"/>
+      <circle cx="79.5" cy="67.5" r="2" fill="#333"/>
+      <circle cx="50" cy="85" r="2" fill="#333"/>
+      <circle cx="20.5" cy="67.5" r="2" fill="#333"/>
+      <circle cx="20.5" cy="32.5" r="2" fill="#333"/>
+      <!-- Series A (green) -->
+      <polygon points="50,20 74,35 72,64 50,78 28,62 26,34" fill="rgba(34,197,94,0.08)" stroke="#22c55e" stroke-width="1.8" stroke-linejoin="round"/>
+      <circle cx="50" cy="20" r="2.5" fill="#22c55e"/>
+      <circle cx="74" cy="35" r="2.5" fill="#22c55e"/>
+      <circle cx="72" cy="64" r="2.5" fill="#22c55e"/>
+      <circle cx="50" cy="78" r="2.5" fill="#22c55e"/>
+      <circle cx="28" cy="62" r="2.5" fill="#22c55e"/>
+      <circle cx="26" cy="34" r="2.5" fill="#22c55e"/>
+      <!-- Series B (amber) -->
+      <polygon points="50,24 70,38 76,60 50,72 34,68 24,38" fill="rgba(245,158,11,0.08)" stroke="#f59e0b" stroke-width="1.8" stroke-linejoin="round" stroke-dasharray="4 2"/>
+      <circle cx="50" cy="24" r="2.5" fill="#f59e0b"/>
+      <circle cx="70" cy="38" r="2.5" fill="#f59e0b"/>
+      <circle cx="76" cy="60" r="2.5" fill="#f59e0b"/>
+      <circle cx="50" cy="72" r="2.5" fill="#f59e0b"/>
+      <circle cx="34" cy="68" r="2.5" fill="#f59e0b"/>
+      <circle cx="24" cy="38" r="2.5" fill="#f59e0b"/>
+    </svg>
+  </g>
+
+  <!-- Text: LAME -->
+  <text x="150" y="58" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-weight="900" font-size="48" fill="#ffffff" letter-spacing="-1">LAME</text>
+  <!-- Text: DATA -->
+  <text x="150" y="100" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-weight="300" font-size="48" fill="#22c55e" letter-spacing="-1">DATA</text>
+</svg>
