@@ -6,7 +6,7 @@
 
 Low-cost IMU-based system for detecting lameness, tracking performance, and building baseline movement profiles for horses.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![License: PolyForm Noncommercial](https://img.shields.io/badge/License-PolyForm%20NC-blue.svg)](LICENSE)
 [![GitHub Stars](https://img.shields.io/github/stars/wrathagom/lame-data?style=social)](https://github.com/wrathagom/lame-data/stargazers)
 
 **[Getting Started](docs/getting-started.md)** · **[Hardware Guide](hardware/)** · **[Sample Data](examples/sample-data/)** · **[Website](https://lamedata.com)**
@@ -124,9 +124,9 @@ lame-data/
 └── upgrade.sh          # Update to latest version
 ```
 
-## Open Source Philosophy
+## Licensing
 
-Everything here is open source under the MIT license. The hardware is off-the-shelf. The firmware and server code are in this repo. If you can build it yourself — do it.
+Everything here is source-available under the [PolyForm Noncommercial](https://polyformproject.org/licenses/noncommercial/1.0.0/) license. The hardware is off-the-shelf. The firmware and server code are in this repo. You're free to use, modify, and share for any non-commercial purpose — research, education, personal use, hobby projects. If you can build it yourself — do it.
 
 But if you want help, there are options:
 
