@@ -2,7 +2,7 @@
 
 <img src="docs/assets/lamedata-logo-dark.png" alt="Lame Data" width="400">
 
-### Open source equine gait analytics
+### Equine gait analytics
 
 Low-cost IMU-based system for detecting lameness, tracking performance, and building baseline movement profiles for horses.
 
@@ -17,13 +17,13 @@ Low-cost IMU-based system for detecting lameness, tracking performance, and buil
 
 ## The Problem
 
-Equine lameness is the #1 reason horses see a vet, but detecting subtle or early-stage lameness is notoriously difficult. Clinical gait analysis systems exist, but they cost tens of thousands of dollars and require specialized facilities. Most horse owners and trainers rely on the human eye — which misses a lot.
+Lameness is the [#1 cause of lost performance](https://www.merckvetmanual.com/musculoskeletal-system/lameness-in-horses/overview-of-lameness-in-horses) in horses — the most common reason horses lose use. But detecting subtle or early-stage lameness is notoriously difficult. Clinical gait analysis systems exist, but they cost tens of thousands of dollars and require specialized facilities. Most horse owners and trainers rely on the human eye — which misses a lot.
 
 ## The Idea
 
 What if you could strap $150 worth of sensors to a horse, collect high-frequency motion data, and build a movement profile that catches what eyes can't?
 
-**Lame Data** is an open source system that uses cheap IMU sensors (M5StickC) connected to a Raspberry Pi to capture 194Hz accelerometer and gyroscope data from multiple points on a horse's body — cannon bones, poll, and more. Over time, regular measurements build a baseline for each horse. Deviations from that baseline surface problems early, before they become visible to the naked eye.
+**Lame Data** uses cheap IMU sensors (M5StickC) connected to a Raspberry Pi to capture 194Hz accelerometer and gyroscope data from multiple points on a horse's body — cannon bones, poll, and more. Over time, regular measurements build a baseline for each horse. Deviations from that baseline surface problems early, before they become visible to the naked eye.
 
 This isn't just a lameness detector. It's a movement intelligence platform:
 
@@ -119,7 +119,9 @@ lame-data/
 │   └── raspberry-pi/   # Collection server, web UI
 ├── examples/           # Sample data for testing and development
 │   └── sample-data/
-├── docs/               # Documentation and guides
+├── docs/               # Website (GitHub Pages) and documentation
+│   ├── index.html      # Landing page at lamedata.com
+│   └── assets/         # Logo, favicon, images
 ├── install.sh          # One-line Pi setup
 └── upgrade.sh          # Update to latest version
 ```
