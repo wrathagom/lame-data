@@ -1,11 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
   <rect width="32" height="32" rx="6" fill="#111"/>
   <g transform="scale(0.32)">
-    <!-- Series A (green) -->
-    <polygon points="50,20 74,35 72,64 50,78 28,62 26,34" fill="rgba(34,197,94,0.12)" stroke="#22c55e" stroke-width="2.5" stroke-linejoin="round"/>
-    <!-- Series B (amber) -->
-    <polygon points="50,24 70,38 76,60 50,72 34,68 24,38" fill="rgba(245,158,11,0.12)" stroke="#f59e0b" stroke-width="2.5" stroke-linejoin="round" stroke-dasharray="4 2"/>
-    <!-- LD monogram -->
+    <polygon points="50,20 74.2,36 75.2,64.6 50,80 25.8,64 24.8,35.5" fill="rgba(34,197,94,0.12)" stroke="#22c55e" stroke-width="2.5" stroke-linejoin="round"/>
+    <polygon points="50,24.1 69.7,38.6 73.6,63.7 50,73.8 33.3,59.6 28.2,37.4" fill="rgba(245,158,11,0.12)" stroke="#f59e0b" stroke-width="2.5" stroke-linejoin="round" stroke-dasharray="4 2"/>
     <text x="50" y="60" text-anchor="middle" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-weight="800" font-size="30" fill="#ffffff">LD</text>
   </g>
 </svg>

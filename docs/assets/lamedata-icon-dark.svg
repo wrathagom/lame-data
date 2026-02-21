@@ -1,31 +1,25 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
-  <rect width="100" height="100" rx="16" fill="#111"/>
-  <!-- Grid lines -->
-  <polygon points="50,15 79.5,32.5 79.5,67.5 50,85 20.5,67.5 20.5,32.5" fill="none" stroke="#2a2a2a" stroke-width="0.8"/>
-  <polygon points="50,27 68,36 68,64 50,73 32,64 32,36" fill="none" stroke="#2a2a2a" stroke-width="0.8"/>
-  <!-- Axes -->
+  <polygon points="50,15 80.31,32.5 80.31,67.5 50,85 19.69,67.5 19.69,32.5" fill="none" stroke="#2a2a2a" stroke-width="0.8"/>
+  <polygon points="50,27 68.44,36.25 68.44,58.75 50,68 31.56,58.75 31.56,36.25" fill="none" stroke="#2a2a2a" stroke-width="0.8"/>
   <line x1="50" y1="50" x2="50" y2="15" stroke="#1e1e1e" stroke-width="0.6"/>
-  <line x1="50" y1="50" x2="79.5" y2="32.5" stroke="#1e1e1e" stroke-width="0.6"/>
-  <line x1="50" y1="50" x2="79.5" y2="67.5" stroke="#1e1e1e" stroke-width="0.6"/>
+  <line x1="50" y1="50" x2="80.31" y2="32.5" stroke="#1e1e1e" stroke-width="0.6"/>
+  <line x1="50" y1="50" x2="80.31" y2="67.5" stroke="#1e1e1e" stroke-width="0.6"/>
   <line x1="50" y1="50" x2="50" y2="85" stroke="#1e1e1e" stroke-width="0.6"/>
-  <line x1="50" y1="50" x2="20.5" y2="67.5" stroke="#1e1e1e" stroke-width="0.6"/>
-  <line x1="50" y1="50" x2="20.5" y2="32.5" stroke="#1e1e1e" stroke-width="0.6"/>
-  <!-- Series A (green) -->
-  <polygon points="50,20 74,35 72,64 50,78 28,62 26,34" fill="rgba(34,197,94,0.08)" stroke="#22c55e" stroke-width="1.8" stroke-linejoin="round"/>
+  <line x1="50" y1="50" x2="19.69" y2="67.5" stroke="#1e1e1e" stroke-width="0.6"/>
+  <line x1="50" y1="50" x2="19.69" y2="32.5" stroke="#1e1e1e" stroke-width="0.6"/>
+  <polygon points="50,20 74.2,36 75.2,64.6 50,80 25.8,64 24.8,35.5" fill="rgba(34,197,94,0.08)" stroke="#22c55e" stroke-width="1.8" stroke-linejoin="round"/>
   <circle cx="50" cy="20" r="2.5" fill="#22c55e"/>
-  <circle cx="74" cy="35" r="2.5" fill="#22c55e"/>
-  <circle cx="72" cy="64" r="2.5" fill="#22c55e"/>
-  <circle cx="50" cy="78" r="2.5" fill="#22c55e"/>
-  <circle cx="28" cy="62" r="2.5" fill="#22c55e"/>
-  <circle cx="26" cy="34" r="2.5" fill="#22c55e"/>
-  <!-- Series B (amber) -->
-  <polygon points="50,24 70,38 76,60 50,72 34,68 24,38" fill="rgba(245,158,11,0.08)" stroke="#f59e0b" stroke-width="1.8" stroke-linejoin="round" stroke-dasharray="4 2"/>
-  <circle cx="50" cy="24" r="2.5" fill="#f59e0b"/>
-  <circle cx="70" cy="38" r="2.5" fill="#f59e0b"/>
-  <circle cx="76" cy="60" r="2.5" fill="#f59e0b"/>
-  <circle cx="50" cy="72" r="2.5" fill="#f59e0b"/>
-  <circle cx="34" cy="68" r="2.5" fill="#f59e0b"/>
-  <circle cx="24" cy="38" r="2.5" fill="#f59e0b"/>
-  <!-- LD monogram -->
+  <circle cx="74.2" cy="36" r="2.5" fill="#22c55e"/>
+  <circle cx="75.2" cy="64.6" r="2.5" fill="#22c55e"/>
+  <circle cx="50" cy="80" r="2.5" fill="#22c55e"/>
+  <circle cx="25.8" cy="64" r="2.5" fill="#22c55e"/>
+  <circle cx="24.8" cy="35.5" r="2.5" fill="#22c55e"/>
+  <polygon points="50,24.1 69.7,38.6 73.6,63.7 50,73.8 33.3,59.6 28.2,37.4" fill="rgba(245,158,11,0.08)" stroke="#f59e0b" stroke-width="1.8" stroke-linejoin="round" stroke-dasharray="4 2"/>
+  <circle cx="50" cy="24.1" r="2.5" fill="#f59e0b"/>
+  <circle cx="69.7" cy="38.6" r="2.5" fill="#f59e0b"/>
+  <circle cx="73.6" cy="63.7" r="2.5" fill="#f59e0b"/>
+  <circle cx="50" cy="73.8" r="2.5" fill="#f59e0b"/>
+  <circle cx="33.3" cy="59.6" r="2.5" fill="#f59e0b"/>
+  <circle cx="28.2" cy="37.4" r="2.5" fill="#f59e0b"/>
   <text x="50" y="55" text-anchor="middle" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-weight="800" font-size="18" fill="#ffffff">LD</text>
 </svg>

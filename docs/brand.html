@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lame Data — Brand Guidelines</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #22c55e;
+    --green-dim: #16a34a;
+    --amber: #f59e0b;
+    --red: #dc2626;
+    --bg: #08090a;
+    --bg-raised: #0d0e10;
+    --bg-card: #111214;
+    --border: #1a1c1e;
+    --border-light: #252729;
+    --text: #e0e0e0;
+    --text-dim: #888;
+    --text-faint: #555;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    padding: 60px 40px;
+    max-width: 1000px;
+    margin: 0 auto;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1 { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+  .subtitle { color: var(--text-dim); font-size: 15px; margin-bottom: 48px; }
+  h2 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text-faint);
+    margin-bottom: 16px;
+    margin-top: 48px;
+  }
+  h2:first-of-type { margin-top: 0; }
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  .card {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+    min-height: 180px;
+  }
+  .preview.dark { background: #0d0d0d; }
+  .preview.light { background: #f8f7f4; }
+  .preview.checker {
+    background-image:
+      linear-gradient(45deg, #1a1a1a 25%, transparent 25%),
+      linear-gradient(-45deg, #1a1a1a 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #1a1a1a 75%),
+      linear-gradient(-45deg, transparent 75%, #1a1a1a 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+    background-color: #0a0a0a;
+  }
+  .preview img { max-width: 100%; max-height: 120px; }
+  .preview.icon img { max-height: 80px; }
+  .card-footer {
+    padding: 12px 16px;
+    background: var(--bg-card);
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .card-name {
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .card-links {
+    display: flex;
+    gap: 12px;
+  }
+  .card-links a {
+    font-size: 12px;
+    color: var(--green);
+    text-decoration: none;
+  }
+  .card-links a:hover { text-decoration: underline; }
+
+  /* Colors */
+  .color-group-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-faint);
+    margin-top: 20px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .color-group-label:first-child { margin-top: 8px; }
+  .colors {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .swatch {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-card);
+  }
+  .swatch-color {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    flex-shrink: 0;
+  }
+  .swatch-label { font-size: 13px; font-weight: 600; }
+  .swatch-hex { font-size: 12px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
+  .swatch-usage { font-size: 11px; color: var(--text-faint); margin-top: 2px; }
+
+  /* Typography */
+  .type-specimen {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .type-preview {
+    padding: 32px;
+    background: var(--bg-raised);
+  }
+  .type-meta {
+    padding: 14px 20px;
+    background: var(--bg-card);
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .type-name {
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .type-details {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .type-weights {
+    display: flex;
+    gap: 20px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+  .type-weight {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    background: var(--bg-card);
+    min-width: 140px;
+  }
+  .type-weight-sample {
+    font-size: 20px;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+  .type-weight-label {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Scale */
+  .type-scale {
+    margin-top: 16px;
+  }
+  .scale-row {
+    display: flex;
+    align-items: baseline;
+    gap: 20px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .scale-row:last-child { border-bottom: none; }
+  .scale-label {
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-faint);
+    min-width: 120px;
+    flex-shrink: 0;
+  }
+  .scale-sample {
+    color: #fff;
+    line-height: 1.2;
+  }
+
+  /* Usage note */
+  .usage-note {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.6;
+    margin-top: 12px;
+    padding: 16px 20px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-card);
+  }
+  .usage-note code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--green);
+    background: rgba(34,197,94,0.08);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  @media (max-width: 600px) {
+    body { padding: 32px 20px; }
+    .grid { grid-template-columns: 1fr; }
+    .scale-row { flex-direction: column; gap: 4px; }
+    .type-weights { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Brand Guidelines</h1>
+<p class="subtitle">Logos, typography, colors, and usage guidelines for Lame Data.</p>
+
+<h2>Logo Lockups</h2>
+<div class="grid">
+  <div class="card">
+    <div class="preview dark">
+      <img src="assets/lamedata-logo-dark.png" alt="Dark logo">
+    </div>
+    <div class="card-footer">
+      <span class="card-name">Dark (for dark backgrounds)</span>
+      <div class="card-links">
+        <a href="assets/lamedata-logo-dark.png" download>PNG</a>
+        <a href="assets/lamedata-logo-dark.svg" download>SVG</a>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="preview light">
+      <img src="assets/lamedata-logo-light.png" alt="Light logo">
+    </div>
+    <div class="card-footer">
+      <span class="card-name">Light (for light backgrounds)</span>
+      <div class="card-links">
+        <a href="assets/lamedata-logo-light.png" download>PNG</a>
+        <a href="assets/lamedata-logo-light.svg" download>SVG</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2>Icons</h2>
+<div class="grid">
+  <div class="card">
+    <div class="preview dark icon">
+      <img src="assets/lamedata-icon-dark.png" alt="Dark icon">
+    </div>
+    <div class="card-footer">
+      <span class="card-name">Icon — Dark</span>
+      <div class="card-links">
+        <a href="assets/lamedata-icon-dark.png" download>PNG</a>
+        <a href="assets/lamedata-icon-dark.svg" download>SVG</a>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="preview light icon">
+      <img src="assets/lamedata-icon-light.png" alt="Light icon">
+    </div>
+    <div class="card-footer">
+      <span class="card-name">Icon — Light</span>
+      <div class="card-links">
+        <a href="assets/lamedata-icon-light.png" download>PNG</a>
+        <a href="assets/lamedata-icon-light.svg" download>SVG</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2>Favicon</h2>
+<div class="grid">
+  <div class="card">
+    <div class="preview checker icon">
+      <img src="assets/favicon.svg" alt="Favicon SVG" style="max-height:48px;">
+    </div>
+    <div class="card-footer">
+      <span class="card-name">Favicon</span>
+      <div class="card-links">
+        <a href="assets/favicon.ico" download>ICO</a>
+        <a href="assets/favicon.svg" download>SVG</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2>Typography</h2>
+
+<div class="type-specimen">
+  <div class="type-preview">
+    <div style="font-family:'Outfit',sans-serif; font-weight:900; font-size:42px; color:#fff; letter-spacing:-2px; line-height:1.05;">See what eyes can't.</div>
+  </div>
+  <div class="type-meta">
+    <span class="type-name">Outfit</span>
+    <span class="type-details">Primary — headings, body, UI</span>
+  </div>
+</div>
+
+<div class="type-specimen">
+  <div class="type-preview">
+    <div style="font-family:'JetBrains Mono',monospace; font-weight:700; font-size:32px; color:var(--green); line-height:1;">194<span style="font-size:18px">Hz</span></div>
+  </div>
+  <div class="type-meta">
+    <span class="type-name">JetBrains Mono</span>
+    <span class="type-details">Monospace — data, labels, code</span>
+  </div>
+</div>
+
+<div class="type-weights">
+  <div class="type-weight">
+    <div class="type-weight-sample" style="font-family:'Outfit',sans-serif; font-weight:900;">LAME</div>
+    <div class="type-weight-label">900 Black</div>
+  </div>
+  <div class="type-weight">
+    <div class="type-weight-sample" style="font-family:'Outfit',sans-serif; font-weight:700;">Heading</div>
+    <div class="type-weight-label">700 Bold</div>
+  </div>
+  <div class="type-weight">
+    <div class="type-weight-sample" style="font-family:'Outfit',sans-serif; font-weight:500;">Nav links</div>
+    <div class="type-weight-label">500 Medium</div>
+  </div>
+  <div class="type-weight">
+    <div class="type-weight-sample" style="font-family:'Outfit',sans-serif; font-weight:400;">Body text</div>
+    <div class="type-weight-label">400 Regular</div>
+  </div>
+  <div class="type-weight">
+    <div class="type-weight-sample" style="font-family:'Outfit',sans-serif; font-weight:300; color:var(--green);">DATA</div>
+    <div class="type-weight-label">300 Light</div>
+  </div>
+</div>
+
+<h3 style="font-size:12px; text-transform:uppercase; letter-spacing:1px; color:var(--text-faint); margin-top:28px; margin-bottom:12px;">Type Scale</h3>
+<div class="type-scale">
+  <div class="scale-row">
+    <span class="scale-label">Hero title</span>
+    <span class="scale-sample" style="font-family:'Outfit',sans-serif; font-weight:900; font-size:42px; letter-spacing:-2px;">See what eyes can't.</span>
+  </div>
+  <div class="scale-row">
+    <span class="scale-label">Section title</span>
+    <span class="scale-sample" style="font-family:'Outfit',sans-serif; font-weight:800; font-size:28px; letter-spacing:-1px;">Lab-grade data.</span>
+  </div>
+  <div class="scale-row">
+    <span class="scale-label">Card title</span>
+    <span class="scale-sample" style="font-family:'Outfit',sans-serif; font-weight:700; font-size:18px;">M5StickC Sensors</span>
+  </div>
+  <div class="scale-row">
+    <span class="scale-label">Body</span>
+    <span class="scale-sample" style="font-family:'Outfit',sans-serif; font-weight:400; font-size:17px; color:var(--text-dim);">Subtle gait asymmetries develop weeks before they're visible.</span>
+  </div>
+  <div class="scale-row">
+    <span class="scale-label">Stat value</span>
+    <span class="scale-sample" style="font-family:'JetBrains Mono',monospace; font-weight:700; font-size:32px; color:var(--green);">~$150</span>
+  </div>
+  <div class="scale-row">
+    <span class="scale-label">Tag / label</span>
+    <span class="scale-sample" style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:3px; text-transform:uppercase; color:var(--green);">Equine Gait Analytics</span>
+  </div>
+</div>
+
+<div class="usage-note">
+  <strong>Wordmark:</strong> "LAME" is set in Outfit 900 (Black). "DATA" is set in Outfit 300 (Light) in the primary green. The contrast between the heavy and light weights is intentional. In SVG assets, Helvetica Neue is used as a fallback.
+</div>
+
+<h2>Colors</h2>
+
+<div class="color-group-label">Brand</div>
+<div class="colors">
+  <div class="swatch">
+    <div class="swatch-color" style="background:#22c55e;"></div>
+    <div>
+      <div class="swatch-label">Green</div>
+      <div class="swatch-hex">#22c55e</div>
+      <div class="swatch-usage">Primary brand color, CTAs, links, healthy data</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#16a34a;"></div>
+    <div>
+      <div class="swatch-label">Green Dim</div>
+      <div class="swatch-hex">#16a34a</div>
+      <div class="swatch-usage">Light-theme logo variant</div>
+    </div>
+  </div>
+</div>
+
+<div class="color-group-label">Data Visualization</div>
+<div class="colors">
+  <div class="swatch">
+    <div class="swatch-color" style="background:#22c55e;"></div>
+    <div>
+      <div class="swatch-label">Baseline</div>
+      <div class="swatch-hex">#22c55e</div>
+      <div class="swatch-usage">Healthy/baseline series</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#f59e0b;"></div>
+    <div>
+      <div class="swatch-label">Amber</div>
+      <div class="swatch-hex">#f59e0b</div>
+      <div class="swatch-usage">Deviation / current data (dark backgrounds)</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#dc2626;"></div>
+    <div>
+      <div class="swatch-label">Red</div>
+      <div class="swatch-hex">#dc2626</div>
+      <div class="swatch-usage">Deviation / current data (light backgrounds)</div>
+    </div>
+  </div>
+</div>
+
+<div class="color-group-label">Backgrounds</div>
+<div class="colors">
+  <div class="swatch">
+    <div class="swatch-color" style="background:#08090a; border: 1px solid #333;"></div>
+    <div>
+      <div class="swatch-label">Background</div>
+      <div class="swatch-hex">#08090a</div>
+      <div class="swatch-usage">Page background</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#0d0e10; border: 1px solid #333;"></div>
+    <div>
+      <div class="swatch-label">Raised</div>
+      <div class="swatch-hex">#0d0e10</div>
+      <div class="swatch-usage">Alternating sections</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#111214; border: 1px solid #333;"></div>
+    <div>
+      <div class="swatch-label">Card</div>
+      <div class="swatch-hex">#111214</div>
+      <div class="swatch-usage">Cards, panels, inputs</div>
+    </div>
+  </div>
+</div>
+
+<div class="color-group-label">Borders</div>
+<div class="colors">
+  <div class="swatch">
+    <div class="swatch-color" style="background:#1a1c1e; border: 1px solid #333;"></div>
+    <div>
+      <div class="swatch-label">Border</div>
+      <div class="swatch-hex">#1a1c1e</div>
+      <div class="swatch-usage">Default borders, dividers</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#252729; border: 1px solid #333;"></div>
+    <div>
+      <div class="swatch-label">Border Light</div>
+      <div class="swatch-hex">#252729</div>
+      <div class="swatch-usage">Hover states, emphasis borders</div>
+    </div>
+  </div>
+</div>
+
+<div class="color-group-label">Text</div>
+<div class="colors">
+  <div class="swatch">
+    <div class="swatch-color" style="background:#ffffff;"></div>
+    <div>
+      <div class="swatch-label">White</div>
+      <div class="swatch-hex">#ffffff</div>
+      <div class="swatch-usage">Headings, emphasis</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#e0e0e0;"></div>
+    <div>
+      <div class="swatch-label">Text</div>
+      <div class="swatch-hex">#e0e0e0</div>
+      <div class="swatch-usage">Primary body text</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#888888;"></div>
+    <div>
+      <div class="swatch-label">Dim</div>
+      <div class="swatch-hex">#888888</div>
+      <div class="swatch-usage">Secondary text, descriptions</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#555555;"></div>
+    <div>
+      <div class="swatch-label">Faint</div>
+      <div class="swatch-hex">#555555</div>
+      <div class="swatch-usage">Tertiary text, labels, captions</div>
+    </div>
+  </div>
+</div>
+
+<div class="usage-note" style="margin-top:20px;">
+  <strong>Dark-first:</strong> The brand is designed for dark backgrounds. The primary green <code>#22c55e</code> is calibrated for contrast against near-black surfaces. On light backgrounds, use <code>#16a34a</code> for the green and <code>#dc2626</code> (red) instead of <code>#f59e0b</code> (amber) for the deviation series.
+</div>
+
+<h2>Logo Usage</h2>
+<div class="usage-note">
+  <strong>Radar chart:</strong> The icon is a hexagonal radar chart with two overlapping data series — a solid green baseline and a dashed deviation line (amber on dark, red on light). The shape represents multi-dimensional gait analysis.<br><br>
+  <strong>Lockup:</strong> The horizontal lockup places the radar chart icon to the left of a two-line wordmark. "LAME" and "DATA" are stacked, never placed on a single line.<br><br>
+  <strong>Spacing:</strong> Maintain clear space equal to the height of the "D" in "DATA" on all sides of the logo.<br><br>
+  <strong>Minimum size:</strong> The full lockup should not be displayed smaller than 120px wide. The standalone icon should not be smaller than 24px.
+</div>
+
+</body>
+</html>
