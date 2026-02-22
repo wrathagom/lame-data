@@ -1,0 +1,435 @@
+{% extends "base.html" %}
+
+{% block title %}Session {{ session_id }} - Lame Data Cloud{% endblock %}
+
+{% block extra_style %}
+    .session-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    .session-header h2 { margin: 0; }
+    .chart-container { position: relative; height: 300px; }
+    .chart-container-small { position: relative; height: 150px; }
+    .axis-label {
+        display: inline-block; width: 12px; height: 12px;
+        border-radius: 2px; margin-right: 0.5rem;
+    }
+    .axis-mag { background: rgb(156, 39, 176); }
+    .axis-x { background: rgb(255, 99, 132); }
+    .axis-y { background: rgb(54, 162, 235); }
+    .axis-z { background: rgb(75, 192, 192); }
+    .xyz-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+    @media (min-width: 768px) {
+        .xyz-grid { grid-template-columns: 1fr 1fr 1fr; }
+    }
+    .xyz-chart {
+        background: var(--pico-card-background-color);
+        border-radius: var(--pico-border-radius);
+        padding: 1rem;
+    }
+    .xyz-chart h4 { margin: 0 0 0.5rem 0; font-size: 0.9rem; }
+    .slider-group {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    @media (min-width: 768px) { .slider-group { grid-template-columns: 1fr 1fr; } }
+    @media (min-width: 1024px) { .slider-group { grid-template-columns: 1fr 1fr 1fr 1fr; } }
+    .slider-label {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.25rem;
+    }
+    .slider-value { font-weight: bold; color: var(--pico-primary); }
+    #segmentResults {
+        margin-top: 1rem;
+        padding: 1rem;
+        background: var(--pico-card-background-color);
+        border-radius: var(--pico-border-radius);
+        border-left: 4px solid var(--pico-primary);
+    }
+    #segmentResults:empty { display: none; }
+    .asymmetry-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+    .asymmetry-card {
+        padding: 1rem;
+        background: var(--pico-card-background-color);
+        border-radius: var(--pico-border-radius);
+        text-align: center;
+    }
+    .asymmetry-card h4 { margin: 0 0 0.5rem 0; font-size: 0.9rem; }
+    .asymmetry-card .value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: var(--pico-primary);
+    }
+{% endblock %}
+
+{% block extra_head %}
+    <script src="/static/js/chart.umd.min.js"></script>
+    <script src="/static/js/hammer.min.js"></script>
+    <script src="/static/js/chartjs-plugin-zoom.min.js"></script>
+{% endblock %}
+
+{% block content %}
+    <article>
+        <div class="session-header">
+            <div>
+                <h2 id="sessionTitle">Loading...</h2>
+                <div id="sessionInfo"></div>
+            </div>
+            <a href="/">Back to Sessions</a>
+        </div>
+    </article>
+
+    <article>
+        <h3><span class="axis-label axis-mag"></span>Acceleration Magnitude</h3>
+        <div class="chart-container">
+            <canvas id="chartMag"></canvas>
+        </div>
+
+        <details>
+            <summary>Show X/Y/Z Components</summary>
+            <div class="xyz-grid">
+                <div class="xyz-chart">
+                    <h4><span class="axis-label axis-x"></span>X-Axis</h4>
+                    <div class="chart-container-small"><canvas id="chartX"></canvas></div>
+                </div>
+                <div class="xyz-chart">
+                    <h4><span class="axis-label axis-y"></span>Y-Axis</h4>
+                    <div class="chart-container-small"><canvas id="chartY"></canvas></div>
+                </div>
+                <div class="xyz-chart">
+                    <h4><span class="axis-label axis-z"></span>Z-Axis</h4>
+                    <div class="chart-container-small"><canvas id="chartZ"></canvas></div>
+                </div>
+            </div>
+        </details>
+    </article>
+
+    <article>
+        <h3>Gait Analysis</h3>
+        <div style="margin-bottom: 0.75rem;">
+            <label for="deviceSelect">Device:</label>
+            <select id="deviceSelect" style="max-width: 250px; margin: 0;"></select>
+        </div>
+        <div class="slider-group">
+            <div>
+                <div class="slider-label">
+                    <span>Movement Threshold</span>
+                    <span class="slider-value" id="movementValue">0.02</span>
+                </div>
+                <input type="range" id="movementThreshold" min="0.005" max="0.1" step="0.005" value="0.02"
+                       oninput="document.getElementById('movementValue').textContent = this.value">
+                <small>Variance below = stationary</small>
+            </div>
+            <div>
+                <div class="slider-label">
+                    <span>Amplitude Change</span>
+                    <span class="slider-value" id="varianceValue">1.5</span>
+                </div>
+                <input type="range" id="varianceThreshold" min="1.2" max="3" step="0.1" value="1.5"
+                       oninput="document.getElementById('varianceValue').textContent = this.value">
+                <small>Ratio to detect (1.5 = 50%)</small>
+            </div>
+            <div>
+                <div class="slider-label">
+                    <span>Frequency Threshold</span>
+                    <span class="slider-value" id="frequencyValue">0.3</span>
+                </div>
+                <input type="range" id="frequencyThreshold" min="0.1" max="1" step="0.05" value="0.3"
+                       oninput="document.getElementById('frequencyValue').textContent = this.value">
+                <small>Hz change for gait shifts</small>
+            </div>
+            <div>
+                <div class="slider-label">
+                    <span>Min Segment</span>
+                    <span class="slider-value" id="minSegmentValue">2.0</span>
+                </div>
+                <input type="range" id="minSegment" min="0.5" max="5" step="0.5" value="2.0"
+                       oninput="document.getElementById('minSegmentValue').textContent = this.value">
+                <small>Minimum duration (sec)</small>
+            </div>
+        </div>
+        <button onclick="analyzeGait()" id="analyzeBtn">Analyze Gait</button>
+        <div id="segmentResults"></div>
+    </article>
+
+    <article>
+        <h3>Asymmetry Analysis</h3>
+        <div id="asymmetryPanel" class="asymmetry-grid"></div>
+    </article>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const sessionId = '{{ session_id }}';
+    let chartMag, chartX, chartY, chartZ;
+    let deviceData = {};
+    let currentSegments = null;
+
+    const segmentLinesPlugin = {
+        id: 'segmentLines',
+        afterDraw: (chart) => {
+            if (!currentSegments || currentSegments.count <= 1) return;
+            const ctx = chart.ctx;
+            const xScale = chart.scales.x;
+            const yScale = chart.scales.y;
+            ctx.save();
+            for (let i = 1; i < currentSegments.boundaries.length; i++) {
+                const sampleIdx = currentSegments.boundaries[i];
+                const segType = currentSegments.types[i];
+                const prevType = currentSegments.types[i - 1];
+                const x = xScale.getPixelForValue(sampleIdx);
+                let lineColor, bgColor, labelText;
+                if (segType === 'stationary') {
+                    lineColor = 'rgba(108, 117, 125, 0.8)';
+                    bgColor = 'rgba(108, 117, 125, 0.9)';
+                    labelText = 'Stop';
+                } else if (prevType === 'stationary') {
+                    lineColor = 'rgba(40, 167, 69, 0.8)';
+                    bgColor = 'rgba(40, 167, 69, 0.9)';
+                    labelText = 'Start';
+                } else {
+                    lineColor = 'rgba(255, 193, 7, 0.8)';
+                    bgColor = 'rgba(255, 193, 7, 0.9)';
+                    labelText = 'Gait ' + (i + 1);
+                }
+                ctx.beginPath();
+                ctx.setLineDash([6, 4]);
+                ctx.strokeStyle = lineColor;
+                ctx.lineWidth = 2;
+                ctx.moveTo(x, yScale.top);
+                ctx.lineTo(x, yScale.bottom);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.font = 'bold 10px sans-serif';
+                const textWidth = ctx.measureText(labelText).width;
+                ctx.fillStyle = bgColor;
+                ctx.fillRect(x - textWidth/2 - 4, yScale.top, textWidth + 8, 18);
+                ctx.fillStyle = '#fff';
+                ctx.textAlign = 'center';
+                ctx.fillText(labelText, x, yScale.top + 13);
+            }
+            ctx.restore();
+        }
+    };
+
+    function loadSessionData() {
+        document.getElementById('sessionTitle').setAttribute('aria-busy', 'true');
+
+        // Determine downsample factor: for large datasets, show ~5000 points
+        const downsample = 1;
+        fetch(`/api/session-detail?session_id=${sessionId}&downsample=${downsample}`)
+            .then(r => r.json())
+            .then(rows => {
+                document.getElementById('sessionTitle').removeAttribute('aria-busy');
+                document.getElementById('sessionTitle').textContent = sessionId;
+
+                if (!rows || rows.length === 0) {
+                    document.getElementById('sessionInfo').innerHTML = '<p>No data found</p>';
+                    return;
+                }
+
+                // Group by device_id
+                deviceData = {};
+                rows.forEach(row => {
+                    const did = row.device_id;
+                    if (!deviceData[did]) {
+                        deviceData[did] = {
+                            position: row.position,
+                            magnitude: [], accel_x: [], accel_y: [], accel_z: []
+                        };
+                    }
+                    deviceData[did].magnitude.push(row.magnitude);
+                    deviceData[did].accel_x.push(row.accel_x);
+                    deviceData[did].accel_y.push(row.accel_y);
+                    deviceData[did].accel_z.push(row.accel_z);
+                });
+
+                const deviceIds = Object.keys(deviceData);
+                document.getElementById('sessionInfo').innerHTML =
+                    `<p><strong>Samples:</strong> ${rows.length.toLocaleString()} <strong>Devices:</strong> ${deviceIds.length}</p>`;
+
+                // Populate device selector
+                const sel = document.getElementById('deviceSelect');
+                sel.innerHTML = '';
+                deviceIds.forEach(did => {
+                    const opt = document.createElement('option');
+                    opt.value = did;
+                    opt.textContent = deviceData[did].position || ('Device ' + did);
+                    sel.appendChild(opt);
+                });
+
+                renderCharts(deviceIds);
+                loadAsymmetry();
+            });
+    }
+
+    function renderCharts(deviceIds) {
+        const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'];
+
+        // Magnitude: all devices overlaid
+        const datasets = deviceIds.map((did, idx) => ({
+            label: deviceData[did].position || ('Device ' + did),
+            data: deviceData[did].magnitude,
+            borderColor: colors[idx % colors.length],
+            borderWidth: 2,
+            pointRadius: 0,
+            fill: false
+        }));
+
+        const maxLen = Math.max(...deviceIds.map(did => deviceData[did].magnitude.length));
+        const labels = Array.from({length: maxLen}, (_, i) => i);
+
+        const zoomOptions = {
+            zoom: { wheel: { enabled: true, speed: 0.1 }, pinch: { enabled: true }, mode: 'x' },
+            pan: { enabled: true, mode: 'x' },
+            limits: { x: { min: 0, max: maxLen - 1 } }
+        };
+        const commonOptions = {
+            responsive: true, maintainAspectRatio: false, animation: false,
+            plugins: { legend: { display: true, position: 'top' }, zoom: zoomOptions },
+            scales: {
+                x: { display: true, title: { display: true, text: 'Sample Number' } },
+                y: { title: { display: true, text: 'Acceleration (g)' } }
+            }
+        };
+
+        chartMag = new Chart(document.getElementById('chartMag'), {
+            type: 'line',
+            data: { labels, datasets },
+            options: commonOptions,
+            plugins: [segmentLinesPlugin]
+        });
+
+        // X/Y/Z from first device
+        const first = deviceData[deviceIds[0]];
+        const smallOptions = {
+            ...commonOptions,
+            scales: { x: { display: false }, y: { display: true } },
+            plugins: { legend: { display: false }, zoom: zoomOptions }
+        };
+
+        chartX = new Chart(document.getElementById('chartX'), {
+            type: 'line',
+            data: { labels, datasets: [{ label: 'X', data: first.accel_x, borderColor: 'rgb(255,99,132)', borderWidth: 1, pointRadius: 0 }] },
+            options: smallOptions
+        });
+        chartY = new Chart(document.getElementById('chartY'), {
+            type: 'line',
+            data: { labels, datasets: [{ label: 'Y', data: first.accel_y, borderColor: 'rgb(54,162,235)', borderWidth: 1, pointRadius: 0 }] },
+            options: smallOptions
+        });
+        chartZ = new Chart(document.getElementById('chartZ'), {
+            type: 'line',
+            data: { labels, datasets: [{ label: 'Z', data: first.accel_z, borderColor: 'rgb(75,192,192)', borderWidth: 1, pointRadius: 0 }] },
+            options: smallOptions
+        });
+    }
+
+    function analyzeGait() {
+        const btn = document.getElementById('analyzeBtn');
+        btn.setAttribute('aria-busy', 'true');
+        btn.disabled = true;
+
+        const deviceId = document.getElementById('deviceSelect').value;
+        const params = new URLSearchParams({
+            session_id: sessionId,
+            device_id: deviceId,
+            movement: document.getElementById('movementThreshold').value,
+            variance: document.getElementById('varianceThreshold').value,
+            frequency: document.getElementById('frequencyThreshold').value,
+            min_segment: document.getElementById('minSegment').value
+        });
+
+        fetch('/api/gait-analysis?' + params)
+            .then(r => r.json())
+            .then(results => {
+                btn.removeAttribute('aria-busy');
+                btn.disabled = false;
+
+                if (!results || results.length === 0) {
+                    document.getElementById('segmentResults').innerHTML = '<strong>No data for analysis.</strong>';
+                    return;
+                }
+
+                const seg = results[0];
+                const segments = {
+                    boundaries: JSON.parse(seg.boundaries),
+                    times: JSON.parse(seg.times),
+                    types: JSON.parse(seg.types),
+                    durations: JSON.parse(seg.durations),
+                    confidence: JSON.parse(seg.confidence),
+                    count: seg.count
+                };
+
+                currentSegments = segments;
+                if (chartMag) chartMag.update();
+
+                const resultsDiv = document.getElementById('segmentResults');
+                if (segments.count <= 1) {
+                    resultsDiv.innerHTML = `<strong>Single ${segments.types[0]} segment.</strong> Try adjusting thresholds.`;
+                } else {
+                    let html = `<strong>Found ${segments.count} segments:</strong><br><br>`;
+                    html += '<table style="width:100%; font-size:0.9rem;"><thead><tr><th>#</th><th>Type</th><th>Start</th><th>Duration</th></tr></thead><tbody>';
+                    for (let i = 0; i < segments.count; i++) {
+                        const icon = segments.types[i] === 'stationary' ? 'S' : 'M';
+                        html += `<tr><td>${i+1}</td><td>${icon} ${segments.types[i]}</td><td>${segments.times[i].toFixed(1)}s</td><td>${segments.durations[i].toFixed(1)}s</td></tr>`;
+                    }
+                    html += '</tbody></table>';
+                    resultsDiv.innerHTML = html;
+                }
+            })
+            .catch(err => {
+                btn.removeAttribute('aria-busy');
+                btn.disabled = false;
+                document.getElementById('segmentResults').innerHTML = '<strong>Error analyzing gait.</strong>';
+            });
+    }
+
+    function loadAsymmetry() {
+        fetch('/api/asymmetry?session_id=' + sessionId)
+            .then(r => r.json())
+            .then(data => {
+                const panel = document.getElementById('asymmetryPanel');
+                if (!data || data.length === 0) {
+                    panel.innerHTML = '<p style="color: var(--pico-muted-color);">No position data available</p>';
+                    return;
+                }
+                let html = '';
+                data.forEach(d => {
+                    const posLabel = d.position.replace(/_/g, ' ');
+                    html += `
+                        <div class="asymmetry-card">
+                            <h4>${posLabel}</h4>
+                            <div class="value">${d.avg_magnitude.toFixed(3)}</div>
+                            <small>avg magnitude</small><br>
+                            <small>std: ${d.std_magnitude.toFixed(4)} &bull; n=${d.sample_count.toLocaleString()}</small>
+                        </div>
+                    `;
+                });
+                panel.innerHTML = html;
+            })
+            .catch(() => {
+                document.getElementById('asymmetryPanel').innerHTML = '<p>Error loading asymmetry data</p>';
+            });
+    }
+
+    loadSessionData();
+</script>
+{% endblock %}

@@ -1,0 +1,18 @@
+{
+  "devices": {
+    "1": {"position": "left_front", "color": "#FF6384"},
+    "2": {"position": "right_front", "color": "#36A2EB"},
+    "3": {"position": "left_rear", "color": "#FFCE56"},
+    "4": {"position": "right_rear", "color": "#4BC0C0"},
+    "5": {"position": "withers", "color": "#9966FF"}
+  },
+  "positions": [
+    {"id": "left_front", "label": "Left Front Leg"},
+    {"id": "right_front", "label": "Right Front Leg"},
+    {"id": "left_rear", "label": "Left Rear Leg"},
+    {"id": "right_rear", "label": "Right Rear Leg"},
+    {"id": "poll", "label": "Poll"},
+    {"id": "withers", "label": "Withers"},
+    {"id": "girth", "label": "Girth"}
+  ]
+}

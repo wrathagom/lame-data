@@ -32,6 +32,44 @@
             font-size: 0.85rem;
             color: var(--pico-muted-color);
         }
+        .session-actions {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        .session-actions button {
+            margin: 0;
+            padding: 0.3rem 0.75rem;
+            font-size: 0.8rem;
+        }
+        .upload-form {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        .upload-form input {
+            margin: 0;
+            padding: 0.3rem 0.5rem;
+            font-size: 0.85rem;
+            max-width: 180px;
+        }
+        .upload-form button {
+            margin: 0;
+            padding: 0.3rem 0.75rem;
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+        .upload-progress {
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+        }
+        .upload-progress progress {
+            margin: 0;
+            height: 6px;
+        }
         .no-sessions {
             text-align: center;
             padding: 3rem;
@@ -64,6 +102,15 @@
     </main>
 
     <script>
+        let cloudConfigured = false;
+
+        function checkCloudStatus() {
+            return fetch('/api/cloud_status')
+                .then(r => r.json())
+                .then(data => { cloudConfigured = data.configured; })
+                .catch(() => { cloudConfigured = false; });
+        }
+
         function loadSessions() {
             fetch('/api/sessions')
                 .then(response => response.json())
@@ -81,9 +128,10 @@
                         const meta = session.metadata || {};
                         const date = new Date(session.modified).toLocaleString();
                         const location = (meta.location || 'unknown').replace(/_/g, ' ');
+                        const safeFilename = session.filename.replace(/'/g, "\\'");
 
                         html += `
-                            <div class="session-card" onclick="viewSession('${session.filename}')">
+                            <div class="session-card" onclick="viewSession('${safeFilename}')">
                                 <div class="session-location">${location}</div>
                                 <div class="session-notes">${meta.notes || 'No notes'}</div>
                                 <div class="session-meta">
@@ -91,6 +139,12 @@
                                     ${meta.samples ? Number(meta.samples).toLocaleString() : 'Unknown'} samples &bull;
                                     ${(session.size / 1024).toFixed(1)} KB
                                 </div>
+                                ${cloudConfigured ? `
+                                <div class="session-actions" onclick="event.stopPropagation()">
+                                    <div id="upload-area-${safeFilename}">
+                                        <button onclick="showUploadForm('${safeFilename}')">Send to Cloud</button>
+                                    </div>
+                                </div>` : ''}
                             </div>
                         `;
                     });
@@ -99,11 +153,65 @@
                 });
         }
 
+        function showUploadForm(filename) {
+            const area = document.getElementById('upload-area-' + filename);
+            area.innerHTML = `
+                <div class="upload-form">
+                    <input type="text" id="horse-name-${filename}" placeholder="Horse name (optional)">
+                    <button onclick="startUpload('${filename}')">Upload</button>
+                    <button class="secondary" onclick="cancelUploadForm('${filename}')">Cancel</button>
+                </div>
+            `;
+        }
+
+        function cancelUploadForm(filename) {
+            const area = document.getElementById('upload-area-' + filename);
+            area.innerHTML = `<button onclick="showUploadForm('${filename}')">Send to Cloud</button>`;
+        }
+
+        function startUpload(filename) {
+            const horseName = document.getElementById('horse-name-' + filename).value;
+            const area = document.getElementById('upload-area-' + filename);
+            area.innerHTML = `
+                <div class="upload-progress">
+                    <progress id="progress-${filename}" value="0" max="100"></progress>
+                    <small id="progress-text-${filename}">Starting...</small>
+                </div>
+            `;
+
+            fetch('/api/upload/' + filename, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({horse_name: horseName})
+            }).then(() => pollUploadStatus(filename));
+        }
+
+        function pollUploadStatus(filename) {
+            const interval = setInterval(() => {
+                fetch('/api/upload_status/' + filename)
+                    .then(r => r.json())
+                    .then(state => {
+                        const progress = document.getElementById('progress-' + filename);
+                        const text = document.getElementById('progress-text-' + filename);
+                        if (!progress) { clearInterval(interval); return; }
+
+                        progress.value = state.progress;
+                        text.textContent = state.status === 'complete' ? 'Uploaded!'
+                            : state.status === 'error' ? 'Error: ' + state.error
+                            : state.status + ' (' + state.progress + '%)';
+
+                        if (state.status === 'complete' || state.status === 'error') {
+                            clearInterval(interval);
+                        }
+                    });
+            }, 500);
+        }
+
         function viewSession(filename) {
             window.location.href = `/view/${filename}`;
         }
 
-        loadSessions();
+        checkCloudStatus().then(() => loadSessions());
     </script>
 </body>
 </html>

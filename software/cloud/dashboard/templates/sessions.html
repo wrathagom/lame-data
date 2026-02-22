@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}Sessions - Lame Data Cloud{% endblock %}
+
+{% block extra_style %}
+    .filter-bar {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+    .filter-bar select {
+        margin: 0;
+        max-width: 250px;
+    }
+    .session-card {
+        padding: 1rem;
+        margin: 0.75rem 0;
+        border-radius: var(--pico-border-radius);
+        border-left: 4px solid var(--pico-primary);
+        background: var(--pico-card-background-color);
+        cursor: pointer;
+        transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+    .session-card:hover {
+        transform: translateX(4px);
+        box-shadow: var(--pico-box-shadow);
+    }
+    .session-card h4 { margin: 0 0 0.25rem 0; }
+    .session-meta {
+        font-size: 0.85rem;
+        color: var(--pico-muted-color);
+    }
+    .no-sessions {
+        text-align: center;
+        padding: 3rem;
+        color: var(--pico-muted-color);
+    }
+{% endblock %}
+
+{% block content %}
+    <h1>Sessions</h1>
+
+    <div class="filter-bar">
+        <label for="horseFilter" style="margin:0; white-space:nowrap;">Horse:</label>
+        <select id="horseFilter" onchange="loadSessions()">
+            <option value="">All horses</option>
+        </select>
+    </div>
+
+    <article>
+        <div id="sessionsList" aria-busy="true">Loading sessions...</div>
+    </article>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let allSessions = [];
+
+    function loadSessions() {
+        const container = document.getElementById('sessionsList');
+        container.setAttribute('aria-busy', 'true');
+
+        const horseName = document.getElementById('horseFilter').value;
+        const params = horseName ? '?horse_name=' + encodeURIComponent(horseName) : '';
+
+        fetch('/api/sessions' + params)
+            .then(r => r.json())
+            .then(sessions => {
+                allSessions = sessions;
+                container.removeAttribute('aria-busy');
+                populateHorseFilter(sessions);
+                renderSessions(sessions);
+            })
+            .catch(() => {
+                container.removeAttribute('aria-busy');
+                container.innerHTML = '<div class="no-sessions">Error loading sessions</div>';
+            });
+    }
+
+    function populateHorseFilter(sessions) {
+        const select = document.getElementById('horseFilter');
+        const current = select.value;
+        const names = [...new Set(sessions.map(s => s.horse_name).filter(Boolean))].sort();
+
+        // Only rebuild if filter is empty (first load)
+        if (select.options.length <= 1) {
+            names.forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = name;
+                opt.textContent = name;
+                select.appendChild(opt);
+            });
+            select.value = current;
+        }
+    }
+
+    function renderSessions(sessions) {
+        const container = document.getElementById('sessionsList');
+
+        if (sessions.length === 0) {
+            container.innerHTML = '<div class="no-sessions">No sessions found</div>';
+            return;
+        }
+
+        let html = '';
+        sessions.forEach(s => {
+            const date = s.start_time ? new Date(s.start_time).toLocaleString() : 'Unknown date';
+            const deviceConfig = s.device_config ? JSON.parse(s.device_config) : {};
+            const deviceCount = Object.keys(deviceConfig).length;
+
+            html += `
+                <div class="session-card" onclick="location.href='/session/${s.session_id}'">
+                    <h4>${s.horse_name || 'Unknown Horse'}</h4>
+                    <div>${s.location || 'No location'}</div>
+                    <div class="session-meta">
+                        ${date} &bull;
+                        ${Number(s.total_samples).toLocaleString()} samples &bull;
+                        ${deviceCount} device${deviceCount !== 1 ? 's' : ''}
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+    }
+
+    loadSessions();
+</script>
+{% endblock %}

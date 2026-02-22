@@ -33,3 +33,5 @@ hardware/m5stickc/config.h
 
 # Software config (contains credentials)
 software/raspberry-pi/.env
+software/cloud/.env.local
+software/cloud/.moose
