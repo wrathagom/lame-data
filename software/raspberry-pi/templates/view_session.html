@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="/static/css/pico.min.css">
     <script src="/static/js/chart.umd.min.js"></script>
+    <script src="/static/js/hammer.min.js"></script>
+    <script src="/static/js/chartjs-plugin-zoom.min.js"></script>
     <style>
         header {
             text-align: center;
@@ -124,7 +126,10 @@
                     <h2 id="sessionTitle">Loading...</h2>
                     <div id="sessionInfo"></div>
                 </div>
-                <button onclick="downloadCSV()">Download CSV</button>
+                <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                    <button onclick="downloadCSV()">Download CSV</button>
+                    <div id="cloudUploadArea" style="display: none;"></div>
+                </div>
             </div>
         </article>
 
@@ -321,107 +326,268 @@
                         return;
                     }
 
-                    const labels = data.timestamps.map((_, i) => i);
-
                     document.getElementById('sessionTitle').textContent = filename;
-                    document.getElementById('sessionInfo').innerHTML =
-                        `<p><strong>Total Samples:</strong> ${data.sample_count.toLocaleString()}</p>`;
 
-                    const commonOptions = {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        animation: false,
-                        plugins: {
-                            legend: { display: false }
-                        },
-                        scales: {
-                            x: {
-                                display: true,
-                                title: { display: true, text: 'Sample Number' }
-                            },
-                            y: {
-                                title: { display: true, text: 'Acceleration (g)' }
-                            }
-                        }
-                    };
+                    // Check if this is multi-device data or legacy single-device
+                    const isMultiDevice = data.devices !== undefined;
 
-                    const smallOptions = {
-                        ...commonOptions,
-                        scales: {
-                            x: { display: false },
-                            y: { display: true }
-                        }
-                    };
-
-                    // Magnitude chart (primary) with segment lines plugin
-                    chartMag = new Chart(document.getElementById('chartMag'), {
-                        type: 'line',
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                label: 'Magnitude',
-                                data: data.magnitude,
-                                borderColor: 'rgb(156, 39, 176)',
-                                backgroundColor: 'rgba(156, 39, 176, 0.1)',
-                                borderWidth: 1,
-                                pointRadius: 0,
-                                fill: true
-                            }]
-                        },
-                        options: commonOptions,
-                        plugins: [segmentLinesPlugin]
-                    });
-
-                    // X/Y/Z charts (smaller, in details)
-                    chartX = new Chart(document.getElementById('chartX'), {
-                        type: 'line',
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                label: 'X',
-                                data: data.accel_x,
-                                borderColor: 'rgb(255, 99, 132)',
-                                borderWidth: 1,
-                                pointRadius: 0
-                            }]
-                        },
-                        options: smallOptions
-                    });
-
-                    chartY = new Chart(document.getElementById('chartY'), {
-                        type: 'line',
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                label: 'Y',
-                                data: data.accel_y,
-                                borderColor: 'rgb(54, 162, 235)',
-                                borderWidth: 1,
-                                pointRadius: 0
-                            }]
-                        },
-                        options: smallOptions
-                    });
-
-                    chartZ = new Chart(document.getElementById('chartZ'), {
-                        type: 'line',
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                label: 'Z',
-                                data: data.accel_z,
-                                borderColor: 'rgb(75, 192, 192)',
-                                borderWidth: 1,
-                                pointRadius: 0
-                            }]
-                        },
-                        options: smallOptions
-                    });
-                })
-                .catch(error => {
-                    console.error('Error loading session data:', error);
-                    document.getElementById('sessionTitle').textContent = 'Error loading session';
+                    if (isMultiDevice) {
+                        renderMultiDeviceCharts(data);
+                    } else {
+                        renderSingleDeviceCharts(data);
+                    }
                 });
+        }
+
+        function renderMultiDeviceCharts(data) {
+            const deviceIds = Object.keys(data.devices);
+            const deviceCount = deviceIds.length;
+
+            document.getElementById('sessionInfo').innerHTML =
+                `<p><strong>Total Samples:</strong> ${data.sample_count.toLocaleString()} <strong>Devices:</strong> ${deviceCount}</p>`;
+
+            // Build datasets for magnitude chart - one per device
+            const datasets = deviceIds.map((deviceId, idx) => {
+                const device = data.devices[deviceId];
+                const config = device.config || {};
+                const position = config.position || `Device ${deviceId}`;
+                const color = config.color || `hsl(${idx * 360 / deviceCount}, 70%, 50%)`;
+
+                return {
+                    label: position,
+                    data: device.magnitude,
+                    borderColor: color,
+                    backgroundColor: color + '20',
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    fill: false
+                };
+            });
+
+            // Use first device's length for labels
+            const firstDevice = data.devices[deviceIds[0]];
+            const labels = firstDevice.magnitude.map((_, i) => i);
+
+            const zoomOptions = {
+                zoom: {
+                    wheel: {
+                        enabled: true,
+                        speed: 0.1
+                    },
+                    pinch: {
+                        enabled: true
+                    },
+                    mode: 'x'
+                },
+                pan: {
+                    enabled: true,
+                    mode: 'x'
+                },
+                limits: {
+                    x: {min: 0, max: labels.length - 1}
+                }
+            };
+
+            const commonOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        onClick: (e, legendItem, legend) => {
+                            const index = legendItem.datasetIndex;
+                            const chart = legend.chart;
+                            const meta = chart.getDatasetMeta(index);
+                            meta.hidden = !meta.hidden;
+                            chart.update();
+                        }
+                    },
+                    zoom: zoomOptions
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        title: { display: true, text: 'Sample Number' }
+                    },
+                    y: {
+                        title: { display: true, text: 'Acceleration (g)' }
+                    }
+                }
+            };
+
+            // Magnitude chart with all devices overlaid
+            chartMag = new Chart(document.getElementById('chartMag'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: commonOptions,
+                plugins: [segmentLinesPlugin]
+            });
+
+            // For multi-device, show first device in X/Y/Z charts
+            const firstDeviceData = data.devices[deviceIds[0]];
+            const smallOptions = {
+                ...commonOptions,
+                scales: {
+                    x: { display: false },
+                    y: { display: true }
+                },
+                plugins: { legend: { display: false }, zoom: zoomOptions }
+            };
+
+            chartX = new Chart(document.getElementById('chartX'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'X',
+                        data: firstDeviceData.accel_x,
+                        borderColor: 'rgb(255, 99, 132)',
+                        borderWidth: 1,
+                        pointRadius: 0
+                    }]
+                },
+                options: smallOptions
+            });
+
+            chartY = new Chart(document.getElementById('chartY'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Y',
+                        data: firstDeviceData.accel_y,
+                        borderColor: 'rgb(54, 162, 235)',
+                        borderWidth: 1,
+                        pointRadius: 0
+                    }]
+                },
+                options: smallOptions
+            });
+
+            chartZ = new Chart(document.getElementById('chartZ'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Z',
+                        data: firstDeviceData.accel_z,
+                        borderColor: 'rgb(75, 192, 192)',
+                        borderWidth: 1,
+                        pointRadius: 0
+                    }]
+                },
+                options: smallOptions
+            });
+        }
+
+        function renderSingleDeviceCharts(data) {
+            const labels = data.timestamps.map((_, i) => i);
+
+            document.getElementById('sessionInfo').innerHTML =
+                `<p><strong>Total Samples:</strong> ${data.sample_count.toLocaleString()}</p>`;
+
+            const commonOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                plugins: {
+                    legend: { display: false },
+                    zoom: {
+                        zoom: {
+                            wheel: { enabled: true, speed: 0.1 },
+                            pinch: { enabled: true },
+                            mode: 'x'
+                        },
+                        pan: { enabled: true, mode: 'x' },
+                        limits: { x: {min: 0, max: labels.length - 1} }
+                    }
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        title: { display: true, text: 'Sample Number' }
+                    },
+                    y: {
+                        title: { display: true, text: 'Acceleration (g)' }
+                    }
+                }
+            };
+
+            const smallOptions = {
+                ...commonOptions,
+                scales: {
+                    x: { display: false },
+                    y: { display: true }
+                }
+            };
+
+            chartMag = new Chart(document.getElementById('chartMag'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Magnitude',
+                        data: data.magnitude,
+                        borderColor: 'rgb(156, 39, 176)',
+                        backgroundColor: 'rgba(156, 39, 176, 0.1)',
+                        borderWidth: 1,
+                        pointRadius: 0,
+                        fill: true
+                    }]
+                },
+                options: commonOptions,
+                plugins: [segmentLinesPlugin]
+            });
+
+            chartX = new Chart(document.getElementById('chartX'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'X',
+                        data: data.accel_x,
+                        borderColor: 'rgb(255, 99, 132)',
+                        borderWidth: 1,
+                        pointRadius: 0
+                    }]
+                },
+                options: smallOptions
+            });
+
+            chartY = new Chart(document.getElementById('chartY'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Y',
+                        data: data.accel_y,
+                        borderColor: 'rgb(54, 162, 235)',
+                        borderWidth: 1,
+                        pointRadius: 0
+                    }]
+                },
+                options: smallOptions
+            });
+
+            chartZ = new Chart(document.getElementById('chartZ'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Z',
+                        data: data.accel_z,
+                        borderColor: 'rgb(75, 192, 192)',
+                        borderWidth: 1,
+                        pointRadius: 0
+                    }]
+                },
+                options: smallOptions
+            });
         }
 
         function downloadCSV() {
@@ -593,7 +759,71 @@
             });
         }
 
+        // Cloud upload
+        function initCloudUpload() {
+            fetch('/api/cloud_status')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.configured) {
+                        const area = document.getElementById('cloudUploadArea');
+                        area.style.display = 'block';
+                        area.innerHTML = '<button class="secondary" onclick="showCloudForm()">Send to Cloud</button>';
+                    }
+                }).catch(() => {});
+        }
+
+        function showCloudForm() {
+            const area = document.getElementById('cloudUploadArea');
+            area.innerHTML = `
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <input type="text" id="cloudHorseName" placeholder="Horse name" style="margin:0; padding:0.3rem 0.5rem; font-size:0.85rem; max-width:150px;">
+                    <button onclick="startCloudUpload()" style="margin:0; padding:0.3rem 0.75rem; font-size:0.8rem; white-space:nowrap;">Upload</button>
+                    <button class="secondary" onclick="cancelCloudForm()" style="margin:0; padding:0.3rem 0.75rem; font-size:0.8rem;">Cancel</button>
+                </div>
+            `;
+        }
+
+        function cancelCloudForm() {
+            const area = document.getElementById('cloudUploadArea');
+            area.innerHTML = '<button class="secondary" onclick="showCloudForm()">Send to Cloud</button>';
+        }
+
+        function startCloudUpload() {
+            const horseName = document.getElementById('cloudHorseName').value;
+            const area = document.getElementById('cloudUploadArea');
+            area.innerHTML = `
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <progress id="cloudProgress" value="0" max="100" style="margin:0; height:6px; width:120px;"></progress>
+                    <small id="cloudProgressText">Starting...</small>
+                </div>
+            `;
+
+            fetch('/api/upload/' + filename, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({horse_name: horseName})
+            }).then(() => {
+                const interval = setInterval(() => {
+                    fetch('/api/upload_status/' + filename)
+                        .then(r => r.json())
+                        .then(state => {
+                            const prog = document.getElementById('cloudProgress');
+                            const text = document.getElementById('cloudProgressText');
+                            if (!prog) { clearInterval(interval); return; }
+                            prog.value = state.progress;
+                            text.textContent = state.status === 'complete' ? 'Uploaded!'
+                                : state.status === 'error' ? 'Error: ' + state.error
+                                : state.progress + '%';
+                            if (state.status === 'complete' || state.status === 'error') {
+                                clearInterval(interval);
+                            }
+                        });
+                }, 500);
+            });
+        }
+
         loadSessionData();
+        initCloudUpload();
     </script>
 </body>
 </html>

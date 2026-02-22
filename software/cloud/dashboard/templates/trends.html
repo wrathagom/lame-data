@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}Trends - Lame Data Cloud{% endblock %}
+
+{% block extra_style %}
+    .filter-bar {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+    .filter-bar select {
+        margin: 0;
+        max-width: 250px;
+    }
+    .chart-container {
+        position: relative;
+        height: 350px;
+    }
+    .no-data {
+        text-align: center;
+        padding: 3rem;
+        color: var(--pico-muted-color);
+    }
+{% endblock %}
+
+{% block extra_head %}
+    <script src="/static/js/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+    <h1>Longitudinal Trends</h1>
+
+    <div class="filter-bar">
+        <label for="horseSelect" style="margin:0; white-space:nowrap;">Horse:</label>
+        <select id="horseSelect" onchange="loadTrends()">
+            <option value="">Select a horse...</option>
+        </select>
+    </div>
+
+    <article>
+        <h3>Average Magnitude Over Time</h3>
+        <div class="chart-container">
+            <canvas id="chartAvgMag"></canvas>
+        </div>
+    </article>
+
+    <article>
+        <h3>Variance Over Time</h3>
+        <div class="chart-container">
+            <canvas id="chartVariance"></canvas>
+        </div>
+    </article>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let chartAvgMag, chartVariance;
+
+    function loadHorseNames() {
+        fetch('/api/sessions')
+            .then(r => r.json())
+            .then(sessions => {
+                const names = [...new Set(sessions.map(s => s.horse_name).filter(Boolean))].sort();
+                const select = document.getElementById('horseSelect');
+                names.forEach(name => {
+                    const opt = document.createElement('option');
+                    opt.value = name;
+                    opt.textContent = name;
+                    select.appendChild(opt);
+                });
+            });
+    }
+
+    function loadTrends() {
+        const horseName = document.getElementById('horseSelect').value;
+        if (!horseName) return;
+
+        fetch('/api/trends?horse_name=' + encodeURIComponent(horseName))
+            .then(r => r.json())
+            .then(data => {
+                if (!data || data.length === 0) {
+                    renderEmptyCharts();
+                    return;
+                }
+                renderTrendCharts(data);
+            })
+            .catch(() => renderEmptyCharts());
+    }
+
+    function renderTrendCharts(data) {
+        const labels = data.map(d => {
+            const dt = new Date(d.start_time);
+            return dt.toLocaleDateString();
+        });
+        const avgMags = data.map(d => d.avg_magnitude);
+        const variances = data.map(d => d.variance);
+
+        const commonOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { display: true },
+                y: { display: true }
+            }
+        };
+
+        if (chartAvgMag) chartAvgMag.destroy();
+        chartAvgMag = new Chart(document.getElementById('chartAvgMag'), {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'Avg Magnitude',
+                    data: avgMags,
+                    borderColor: 'rgb(156, 39, 176)',
+                    backgroundColor: 'rgba(156, 39, 176, 0.1)',
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    fill: true
+                }]
+            },
+            options: commonOptions
+        });
+
+        if (chartVariance) chartVariance.destroy();
+        chartVariance = new Chart(document.getElementById('chartVariance'), {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'Variance',
+                    data: variances,
+                    borderColor: 'rgb(54, 162, 235)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    fill: true
+                }]
+            },
+            options: commonOptions
+        });
+    }
+
+    function renderEmptyCharts() {
+        if (chartAvgMag) chartAvgMag.destroy();
+        if (chartVariance) chartVariance.destroy();
+
+        const emptyOpts = {
+            responsive: true, maintainAspectRatio: false, animation: false,
+            plugins: { legend: { display: false } }
+        };
+
+        chartAvgMag = new Chart(document.getElementById('chartAvgMag'), {
+            type: 'line', data: { labels: [], datasets: [] }, options: emptyOpts
+        });
+        chartVariance = new Chart(document.getElementById('chartVariance'), {
+            type: 'line', data: { labels: [], datasets: [] }, options: emptyOpts
+        });
+    }
+
+    loadHorseNames();
+</script>
+{% endblock %}

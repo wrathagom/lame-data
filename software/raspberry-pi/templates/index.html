@@ -43,8 +43,41 @@
             border-left-color: #2ecc71;
         }
         .device-disconnected {
-            background: #fff5f5;
+            background: #2a2a2a;
             border-left-color: #C44638;
+        }
+        .device-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        .device-config-card {
+            padding: 1rem;
+            border-radius: var(--pico-border-radius);
+            background: var(--pico-card-background-color);
+            border: 2px solid var(--pico-muted-border-color);
+        }
+        .device-config-card.connected {
+            border-color: #2ecc71;
+        }
+        .device-config-card.disconnected {
+            border-color: #C44638;
+            opacity: 0.6;
+        }
+        .device-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        .device-title {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        .battery-info {
+            font-size: 0.9rem;
+            color: var(--pico-muted-color);
         }
         .btn-group {
             display: grid;
@@ -92,19 +125,21 @@
 
         <article>
             <header>
+                <h2>Device Configuration</h2>
+            </header>
+            <div id="deviceGrid" class="device-grid">
+                <!-- Device cards will be dynamically populated -->
+            </div>
+            <button onclick="saveDeviceConfig()">Save Configuration</button>
+        </article>
+
+        <article>
+            <header>
                 <h2>Session Info</h2>
             </header>
 
-            <label for="location">Location on Horse</label>
-            <select id="location">
-                <option value="left_front">Left Front Leg</option>
-                <option value="right_front">Right Front Leg</option>
-                <option value="left_rear">Left Rear Leg</option>
-                <option value="right_rear">Right Rear Leg</option>
-                <option value="poll">Poll</option>
-                <option value="withers">Withers</option>
-                <option value="girth">Girth</option>
-            </select>
+            <label for="location">Session Location</label>
+            <input type="text" id="location" placeholder="e.g., Indoor arena, outdoor field" value="field">
 
             <label for="notes">Notes</label>
             <textarea id="notes" rows="3" placeholder="e.g., Walk in hand, Trot in hand, Lunge left, etc."></textarea>
@@ -115,15 +150,6 @@
             </div>
         </article>
 
-        <article>
-            <header>
-                <h2>Device Status</h2>
-            </header>
-            <div id="deviceStatus">
-                <p>No devices connected</p>
-            </div>
-        </article>
-
         <footer>
             <small>Lame Data - Open Source Horse Biomechanics</small>
         </footer>
@@ -131,6 +157,79 @@
 
     <script>
         let isRecording = false;
+        let deviceConfig = null;
+        let availablePositions = [];
+
+        // Load device configuration on page load
+        async function loadDeviceConfig() {
+            const response = await fetch('/api/device_config');
+            deviceConfig = await response.json();
+            availablePositions = deviceConfig.positions || [];
+            renderDeviceGrid();
+        }
+
+        function renderDeviceGrid() {
+            const grid = document.getElementById('deviceGrid');
+            if (!deviceConfig) return;
+
+            // Show cards for devices 1-5
+            let html = '';
+            for (let i = 1; i <= 5; i++) {
+                const deviceId = i.toString();
+                const device = deviceConfig.devices[deviceId] || { position: '', color: '#999' };
+
+                html += `
+                    <div class="device-config-card" id="device-card-${deviceId}">
+                        <div class="device-header">
+                            <span class="device-title">Device ${deviceId}</span>
+                            <span class="battery-info" id="battery-${deviceId}">--</span>
+                        </div>
+                        <label for="position-${deviceId}">Position</label>
+                        <select id="position-${deviceId}" data-device="${deviceId}">
+                            <option value="">Not in use</option>
+                            ${availablePositions.map(pos =>
+                                `<option value="${pos.id}" ${device.position === pos.id ? 'selected' : ''}>${pos.label}</option>`
+                            ).join('')}
+                        </select>
+                    </div>
+                `;
+            }
+            grid.innerHTML = html;
+        }
+
+        async function saveDeviceConfig() {
+            if (!deviceConfig) return;
+
+            // Collect positions from dropdowns
+            for (let i = 1; i <= 5; i++) {
+                const deviceId = i.toString();
+                const select = document.getElementById(`position-${deviceId}`);
+                const position = select.value;
+
+                if (position) {
+                    // Use existing color or assign a default
+                    const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'];
+                    deviceConfig.devices[deviceId] = {
+                        position: position,
+                        color: deviceConfig.devices[deviceId]?.color || colors[i - 1]
+                    };
+                } else {
+                    // Remove device if position is empty
+                    delete deviceConfig.devices[deviceId];
+                }
+            }
+
+            // Save to server
+            const response = await fetch('/api/device_config', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(deviceConfig)
+            });
+
+            if (response.ok) {
+                alert('Configuration saved!');
+            }
+        }
 
         function updateStatus() {
             fetch('/api/status')
@@ -156,22 +255,27 @@
                     document.getElementById('location').disabled = isRecording;
                     document.getElementById('notes').disabled = isRecording;
 
-                    const deviceDiv = document.getElementById('deviceStatus');
-                    if (Object.keys(data.device_status).length === 0) {
-                        deviceDiv.innerHTML = '<p>No devices connected</p>';
-                    } else {
-                        let html = '';
-                        for (const [deviceId, status] of Object.entries(data.device_status)) {
-                            const stateClass = status.connected ? 'device-connected' : 'device-disconnected';
-                            const stateText = status.connected ? 'Connected' : `Disconnected (${status.seconds_ago}s ago)`;
-                            const stateIcon = status.connected ? '●' : '○';
+                    // Update device card statuses
+                    for (let i = 1; i <= 5; i++) {
+                        const deviceId = i.toString();
+                        const card = document.getElementById(`device-card-${deviceId}`);
+                        const batterySpan = document.getElementById(`battery-${deviceId}`);
 
-                            html += `<div class="device-card ${stateClass}">
-                                <strong>${stateIcon} Device ${deviceId}</strong> - ${stateText}<br>
-                                <small>Battery: ${status.voltage.toFixed(2)}V (${status.percent.toFixed(0)}%)</small>
-                            </div>`;
+                        if (data.device_status[deviceId]) {
+                            const status = data.device_status[deviceId];
+                            card.classList.toggle('connected', status.connected);
+                            card.classList.toggle('disconnected', !status.connected);
+
+                            if (status.connected) {
+                                batterySpan.textContent = `${status.percent.toFixed(0)}%`;
+                            } else {
+                                batterySpan.textContent = 'Offline';
+                            }
+                        } else {
+                            card.classList.remove('connected');
+                            card.classList.add('disconnected');
+                            batterySpan.textContent = '--';
                         }
-                        deviceDiv.innerHTML = html;
                     }
                 });
         }
@@ -206,6 +310,8 @@
             });
         }
 
+        // Initialize
+        loadDeviceConfig();
         setInterval(updateStatus, 1000);
         updateStatus();
     </script>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <title>{% block title %}Lame Data Cloud{% endblock %}</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/static/css/pico.min.css">
+    <style>
+        nav.top-nav {
+            background: var(--pico-card-background-color);
+            padding: 0.75rem 1.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        nav.top-nav .brand {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: var(--pico-primary);
+            text-decoration: none;
+        }
+        nav.top-nav .nav-links a {
+            margin-left: 1.5rem;
+            text-decoration: none;
+        }
+        {% block extra_style %}{% endblock %}
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <nav class="top-nav">
+        <a href="/" class="brand">Lame Data Cloud</a>
+        <div class="nav-links">
+            <a href="/">Sessions</a>
+            <a href="/trends">Trends</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="container" style="margin-top: 2rem;">
+        <small>Lame Data - Open Source Horse Biomechanics</small>
+    </footer>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>
