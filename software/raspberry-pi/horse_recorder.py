@@ -530,7 +530,6 @@ def parse_csv_for_upload(filepath):
                             position = device_config[dev_key].get('position', '')
 
                         readings.append({
-                            'id': f"{session_id}_{device_id}_{seq}",
                             'session_id': session_id,
                             'device_id': device_id,
                             'position': position,

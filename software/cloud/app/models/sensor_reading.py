@@ -4,8 +4,7 @@ from datetime import datetime
 
 
 class SensorReading(BaseModel):
-    id: Key[str]
-    session_id: str
+    session_id: Key[str]
     device_id: int
     position: str = ""
     sequence: int

@@ -66,7 +66,6 @@ class SessionDetailParams(BaseModel):
     downsample: Optional[int] = 1
 
 class SensorReadingRecord(BaseModel):
-    id: str
     session_id: str
     device_id: int
     position: str
@@ -80,7 +79,7 @@ class SensorReadingRecord(BaseModel):
 def get_session_detail(client: MooseClient, params: SessionDetailParams) -> list[SensorReadingRecord]:
     downsample = max(1, params.downsample or 1)
     query = """
-    SELECT id, session_id, device_id, position, sequence,
+    SELECT session_id, device_id, position, sequence,
            toString(timestamp) as timestamp,
            accel_x, accel_y, accel_z, magnitude
     FROM {table}

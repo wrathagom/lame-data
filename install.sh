@@ -24,7 +24,7 @@ else
 fi
 
 # Configure .env
-echo "[1/5] Configuring environment..."
+echo "[1/6] Configuring environment..."
 if [ -f "$PI_DIR/.env" ]; then
     echo "  .env already exists."
     read -p "  Reconfigure? [y/N] " -n 1 -r
@@ -57,6 +57,21 @@ if [ "$SKIP_ENV_CONFIG" = false ]; then
     read -p "  AP Password [Horse12345]: " AP_PASSWORD
     AP_PASSWORD=${AP_PASSWORD:-Horse12345}
 
+    # Cloud analytics (optional)
+    echo ""
+    echo "  Cloud Analytics (optional - press Enter to skip)"
+    echo "  ================================================"
+    echo "  If you have a Moose cloud backend running, enter its URL."
+    echo "  For local dev, this is typically http://<your-laptop-ip>:4000"
+    echo "  API key is only needed for production deployments."
+    read -p "  Cloud URL []: " CLOUD_URL
+    CLOUD_URL=${CLOUD_URL:-}
+    CLOUD_API_KEY=""
+    if [ -n "$CLOUD_URL" ]; then
+        read -p "  Cloud API Key (blank for local dev) []: " CLOUD_API_KEY
+        CLOUD_API_KEY=${CLOUD_API_KEY:-}
+    fi
+
     # Write .env file
     cat > "$PI_DIR/.env" << EOF
 # WiFi Configuration
@@ -71,6 +86,10 @@ WEB_PORT=5000
 
 # Data storage (optional, defaults to ./data)
 # DATA_DIR=/home/pi/horse_data
+
+# Cloud Analytics (optional)
+CLOUD_URL=$CLOUD_URL
+CLOUD_API_KEY=$CLOUD_API_KEY
 EOF
 
     echo ""
@@ -79,7 +98,7 @@ fi
 
 # Create virtual environment
 echo ""
-echo "[2/5] Creating Python virtual environment..."
+echo "[2/6] Creating Python virtual environment..."
 if [ ! -d "$VENV_DIR" ]; then
     python3 -m venv "$VENV_DIR"
     echo "  Created venv at $VENV_DIR"
@@ -89,21 +108,43 @@ fi
 
 # Install Python dependencies
 echo ""
-echo "[3/5] Installing Python dependencies..."
+echo "[3/6] Installing Python dependencies..."
 "$VENV_DIR/bin/pip" install -q --upgrade pip
 "$VENV_DIR/bin/pip" install -q -r "$PI_DIR/requirements.txt"
 echo "  Done"
 
 # Make scripts executable
 echo ""
-echo "[4/5] Setting permissions..."
+echo "[4/6] Setting permissions..."
 chmod +x "$PI_DIR/wifi_manager.sh"
 chmod +x "$SCRIPT_DIR/upgrade.sh" 2>/dev/null || true
 echo "  Done"
 
+# Disable WiFi MAC randomization (needed for DHCP reservations)
+echo ""
+echo "[5/6] Configuring stable WiFi MAC address..."
+if [ "$SKIP_SYSTEMD" = true ]; then
+    echo "  Skipped (run with sudo)"
+else
+    NM_CONF="/etc/NetworkManager/conf.d/no-random-mac.conf"
+    if [ ! -f "$NM_CONF" ]; then
+        cat > "$NM_CONF" << 'EOF'
+[device]
+wifi.scan-rand-mac-address=no
+
+[connection]
+wifi.cloned-mac-address=preserve
+EOF
+        echo "  Created $NM_CONF"
+        echo "  MAC address will now be stable for DHCP reservations"
+    else
+        echo "  Already configured, skipping"
+    fi
+fi
+
 # Install systemd services
 echo ""
-echo "[5/5] Installing systemd services..."
+echo "[6/6] Installing systemd services..."
 if [ "$SKIP_SYSTEMD" = true ]; then
     echo "  Skipped (run with sudo to install services)"
 else
