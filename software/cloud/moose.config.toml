@@ -17,7 +17,7 @@ native_port = 9000
 # additional_databases = ["analytics", "staging"]  # Optional: Additional databases to create on startup
 
 [http_server_config]
-host = "localhost"
+host = "0.0.0.0"
 port = 4000
 management_port = 5001
 

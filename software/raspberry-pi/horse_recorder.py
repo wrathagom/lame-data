@@ -534,7 +534,7 @@ def parse_csv_for_upload(filepath):
                             'device_id': device_id,
                             'position': position,
                             'sequence': seq,
-                            'timestamp': parts[0],
+                            'timestamp': parts[0].replace(' ', 'T', 1) + 'Z',
                             'accel_x': x,
                             'accel_y': y,
                             'accel_z': z,
@@ -555,7 +555,17 @@ def _do_upload(filename, horse_name):
         session_id, metadata, device_config, readings = parse_csv_for_upload(filepath)
 
         metadata['horse_name'] = horse_name or None
-        metadata['uploaded_at'] = datetime.datetime.now().isoformat()
+        metadata['uploaded_at'] = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+
+        # Normalize timestamps to RFC 3339 (required by Moose): 2026-02-22T20:30:33.848649Z
+        for key in ('start_time', 'end_time'):
+            if metadata.get(key):
+                val = metadata[key]
+                if 'T' not in val:
+                    val = val.replace(' ', 'T', 1)
+                if not val.endswith('Z'):
+                    val = val + 'Z'
+                metadata[key] = val
 
         upload_states[filename] = {'status': 'uploading_meta', 'progress': 5, 'error': None}
 
