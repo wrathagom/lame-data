@@ -35,7 +35,7 @@ def gait_analysis(client: MooseClient, params: GaitAnalysisParams) -> list[GaitA
     SELECT magnitude
     FROM {table}
     WHERE session_id = {session_id} AND device_id = {device_id}
-    ORDER BY sequence
+    ORDER BY millis_time
     """
     rows = client.query.execute_raw(query, {
         "session_id": params.session_id,

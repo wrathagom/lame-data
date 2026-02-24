@@ -16,8 +16,11 @@ const int SEND_INTERVAL = 100;
 
 WiFiUDP udp;
 float accX, accY, accZ;
-unsigned long sampleNumber = 0;
 unsigned long lastBatteryUpdate = 0;
+
+// Sync state
+unsigned long syncMillis = 0;
+bool syncReceived = false;
 const unsigned long BATTERY_UPDATE_INTERVAL = 30000;
 
 // Batching
@@ -209,12 +212,32 @@ void loop() {
   
   // Only sample and stream if connected
   if (WiFi.status() == WL_CONNECTED) {
+    // Check for incoming sync broadcast (non-blocking)
+    int packetSize = udp.parsePacket();
+    if (packetSize > 0) {
+      char incomingPacket[64];
+      int len = udp.read(incomingPacket, sizeof(incomingPacket) - 1);
+      if (len > 0) {
+        incomingPacket[len] = '\0';
+        if (strcmp(incomingPacket, "SYNC") == 0) {
+          syncMillis = millis();
+          syncReceived = true;
+          // Send SYNC_ACK back to the Pi
+          char ackBuffer[64];
+          snprintf(ackBuffer, sizeof(ackBuffer), "SYNC_ACK,%s,%lu",
+                   deviceID.c_str(), syncMillis);
+          udp.beginPacket(currentPiIP, udpPort);
+          udp.print(ackBuffer);
+          udp.endPacket();
+        }
+      }
+    }
+
     M5.IMU.getAccelData(&accX, &accY, &accZ);
-    sampleNumber++;
 
     char sample[100];
     snprintf(sample, sizeof(sample), "%s,%lu,%.3f,%.3f,%.3f",
-             deviceID.c_str(), sampleNumber, accX, accY, accZ);
+             deviceID.c_str(), millis(), accX, accY, accZ);
     batchBuffer[batchCount] = String(sample);
     batchCount++;
     

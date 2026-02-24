@@ -69,7 +69,7 @@ class SensorReadingRecord(BaseModel):
     session_id: str
     device_id: int
     position: str
-    sequence: int
+    millis_time: int
     timestamp: str
     accel_x: float
     accel_y: float
@@ -79,13 +79,13 @@ class SensorReadingRecord(BaseModel):
 def get_session_detail(client: MooseClient, params: SessionDetailParams) -> list[SensorReadingRecord]:
     downsample = max(1, params.downsample or 1)
     query = """
-    SELECT session_id, device_id, position, sequence,
+    SELECT session_id, device_id, position, millis_time,
            toString(timestamp) as timestamp,
            accel_x, accel_y, accel_z, magnitude
     FROM {table}
     WHERE session_id = {session_id}
-    AND sequence % {downsample} = 0
-    ORDER BY device_id, sequence
+    AND rowNumberInBlock() % {downsample} = 0
+    ORDER BY device_id, millis_time
     """
     return client.query.execute(query, {
         "table": SensorReadingTable,

@@ -120,6 +120,13 @@
                     <span>Samples:</span>
                     <strong id="samples">0</strong>
                 </div>
+                <div class="metric-row">
+                    <span>Synced Devices:</span>
+                    <strong id="syncCount">0</strong>
+                </div>
+                <div style="margin-top: 0.5rem;">
+                    <button id="resyncBtn" class="outline" onclick="triggerResync()" disabled>Re-sync Sensors</button>
+                </div>
             </div>
         </article>
 
@@ -274,7 +281,11 @@
                         document.getElementById('metrics').style.display = 'block';
                         document.getElementById('duration').textContent = Math.floor(data.duration) + 's';
                         document.getElementById('samples').textContent = data.samples_received.toLocaleString();
+                        const syncCount = Object.keys(data.sync_offsets || {}).length;
+                        document.getElementById('syncCount').textContent = syncCount;
+                        document.getElementById('resyncBtn').disabled = false;
                     } else {
+                        document.getElementById('resyncBtn').disabled = true;
                         statusDiv.textContent = 'NOT RECORDING';
                         statusDiv.className = 'status-indicator status-stopped';
                         document.getElementById('metrics').style.display = 'none';
@@ -347,6 +358,16 @@
                     updateStatus();
                 }
             });
+        }
+
+        function triggerResync() {
+            fetch('/api/sync', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('syncCount').textContent = '0';
+                    }
+                });
         }
 
         function confirmShutdown() {

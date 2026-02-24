@@ -17,6 +17,6 @@ sensor_reading_pipeline = IngestPipeline[SensorReading](
     IngestPipelineConfig(
         ingest_api=True,
         stream=True,
-        table=OlapConfig(order_by_fields=["session_id", "device_id", "sequence"]),
+        table=OlapConfig(order_by_fields=["session_id", "device_id", "millis_time"]),
     ),
 )

@@ -7,7 +7,7 @@ class SensorReading(BaseModel):
     session_id: Key[str]
     device_id: int
     position: str = ""
-    sequence: int
+    millis_time: int
     timestamp: clickhouse_datetime64(6)
     accel_x: float
     accel_y: float

@@ -105,21 +105,43 @@ recording_state = {
     'location': '',
     'notes': '',
     'samples_received': 0,
-    'device_status': {}
+    'device_status': {},
+    'sync_offsets': {}  # device_id -> {'device_millis': int, 'pi_time': str}
 }
+
+def send_sync_broadcast():
+    """Send SYNC broadcast to all sensors on the network."""
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    try:
+        sock.sendto(b"SYNC", ("255.255.255.255", UDP_PORT))
+        print("Sent SYNC broadcast")
+    finally:
+        sock.close()
+
 
 def udp_listener():
     """Background thread to receive UDP data"""
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(("0.0.0.0", UDP_PORT))
     sock.settimeout(1.0)
-    
+
     while True:
         try:
             data, addr = sock.recvfrom(2048)
             decoded = data.decode('utf-8').strip()
-            
-            if decoded.startswith("BAT,"):
+
+            if decoded.startswith("SYNC_ACK,"):
+                parts = decoded.split(',')
+                if len(parts) >= 3:
+                    device_id = parts[1]
+                    device_millis = int(parts[2])
+                    recording_state['sync_offsets'][device_id] = {
+                        'device_millis': device_millis,
+                        'pi_time': datetime.datetime.now().isoformat()
+                    }
+                    print(f"SYNC_ACK from {device_id}: millis={device_millis}")
+            elif decoded.startswith("BAT,"):
                 parts = decoded.split(',')
                 device_id = parts[1]  # Keep as string (4-char hex from MAC address)
                 voltage = float(parts[2])
@@ -136,7 +158,7 @@ def udp_listener():
                     if sample.strip() and not sample.startswith('BAT'):
                         recording_state['recorder'].append(f"{timestamp},{sample}\n")
                         recording_state['samples_received'] += 1
-                
+
         except socket.timeout:
             continue
         except Exception as e:
@@ -202,7 +224,8 @@ def status():
         'samples_received': recording_state['samples_received'],
         'device_status': recording_state['device_status'],
         'location': recording_state['location'],
-        'notes': recording_state['notes']
+        'notes': recording_state['notes'],
+        'sync_offsets': recording_state['sync_offsets']
     }
     
     if recording_state['session_start']:
@@ -250,7 +273,7 @@ def start_recording():
         f"# Notes: {notes}",
         f"# Start Time: {datetime.datetime.now().isoformat()}",
         f"# Device Config: {json.dumps(device_config['devices'])}",
-        "timestamp,device_id,sequence,accel_x,accel_y,accel_z"
+        "timestamp,device_id,millis_time,accel_x,accel_y,accel_z"
     ]
 
     recorder.start(headers)
@@ -261,6 +284,11 @@ def start_recording():
     recording_state['location'] = location
     recording_state['notes'] = notes
     recording_state['samples_received'] = 0
+    recording_state['sync_offsets'] = {}
+
+    # Send sync broadcast twice for reliability
+    send_sync_broadcast()
+    threading.Timer(0.5, send_sync_broadcast).start()
 
     return jsonify({
         'success': True,
@@ -280,7 +308,8 @@ def stop_recording():
     if recorder:
         footers = [
             f"# End Time: {datetime.datetime.now().isoformat()}",
-            f"# Total Samples: {samples}"
+            f"# Total Samples: {samples}",
+            f"# Sync Offsets: {json.dumps(recording_state['sync_offsets'])}"
         ]
         recorder.stop(footers)
 
@@ -293,6 +322,17 @@ def stop_recording():
         'duration': duration,
         'samples_recorded': samples
     })
+
+@app.route('/api/sync', methods=['POST'])
+def trigger_sync():
+    """Manually trigger a sync broadcast to all sensors."""
+    if not recording_state['is_recording']:
+        return jsonify({'error': 'Not recording'}), 400
+    recording_state['sync_offsets'] = {}
+    send_sync_broadcast()
+    threading.Timer(0.5, send_sync_broadcast).start()
+    return jsonify({'success': True})
+
 
 @app.route('/api/sessions')
 def list_sessions():
@@ -524,7 +564,7 @@ def parse_csv_for_upload(filepath):
                         y = float(parts[4])
                         z = float(parts[5])
                         mag = math.sqrt(x * x + y * y + z * z)
-                        seq = int(parts[2])
+                        millis_time = int(parts[2])
                         position = ''
                         if device_id in device_config:
                             position = device_config[device_id].get('position', '')
@@ -533,7 +573,7 @@ def parse_csv_for_upload(filepath):
                             'session_id': session_id,
                             'device_id': device_id,
                             'position': position,
-                            'sequence': seq,
+                            'millis_time': millis_time,
                             'timestamp': parts[0].replace(' ', 'T', 1) + 'Z',
                             'accel_x': x,
                             'accel_y': y,
