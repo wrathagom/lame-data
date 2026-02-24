@@ -2,6 +2,7 @@
 #include <WiFi.h>
 #include <WiFiUdp.h>
 #include "config.h"
+#include "esp_mac.h"
 
 // Device ID derived from hardware MAC address
 String deviceID;
@@ -43,9 +44,10 @@ unsigned long lastButtonCheck = 0;
 const unsigned long BUTTON_CHECK_INTERVAL = 1000;  // ms
 
 String getDeviceID() {
-  // Use MAC address bytes 3, 4, 5 as unique device ID
+  // Use device-unique portion of MAC (bytes 3, 4, 5 in standard order)
   uint8_t mac[6];
-  WiFi.macAddress(mac);
+  esp_efuse_mac_get_default(mac);
+  // mac[0-2] = OUI (manufacturer), mac[3-5] = device-unique
   char id[7];
   sprintf(id, "%02X%02X%02X", mac[3], mac[4], mac[5]);
   return String(id);
