@@ -49,7 +49,7 @@ def udp_listener():
             
             if decoded.startswith("BAT,"):
                 parts = decoded.split(',')
-                device_id = int(parts[1])
+                device_id = parts[1]  # Keep as string (4-char hex from MAC address)
                 voltage = float(parts[2])
                 percent = float(parts[3])
                 recording_state['device_status'][device_id] = {

@@ -16,9 +16,10 @@ WiFiNetwork networks[] = {
 };
 const int NUM_NETWORKS = 2;
 
-// Device Configuration - change DEVICE_ID for each sensor (1-5)
-const int DEVICE_ID = 1;
-const char* deviceName = "HorseLeg1";
+// Device Configuration
+// Device ID is automatically derived from hardware MAC address
+// deviceName is optional - only used for on-screen display convenience
+const char* deviceName = "Sensor";
 
 // UDP Configuration
 const int udpPort = 8888;

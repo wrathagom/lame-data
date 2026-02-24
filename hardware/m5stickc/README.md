@@ -4,7 +4,7 @@
 
 1. Copy `config.h.example` to `config.h`
 2. Edit `config.h` with your WiFi credentials and Pi IP addresses
-3. Set `DEVICE_ID` (1-5) for each sensor
+3. (Optional) Set `deviceName` for display convenience - this only appears on the device screen when you press the button
 
 ## Upload Instructions
 
@@ -16,9 +16,16 @@
 
 ## Multiple Sensors
 
-For multiple sensors, create separate `config.h` files or change `DEVICE_ID` before flashing each unit:
-- Device 1: Left Front
-- Device 2: Right Front
-- Device 3: Left Rear
-- Device 4: Right Rear
-- Device 5: Poll/Withers
+Each M5StickC automatically gets a unique device ID derived from its hardware MAC address (4-character hex code like "A3F2"). You can flash the same firmware to all devices without any configuration changes.
+
+**To identify each device:**
+1. Press Button A on the device to see its unique ID on the screen
+2. Note the ID (e.g., "A3F2")
+3. Assign device locations in the web UI:
+   - Left Front
+   - Right Front
+   - Left Rear
+   - Right Rear
+   - Poll/Withers
+
+The hardware ID is automatically included in all data packets, allowing the Pi server to track multiple devices simultaneously.

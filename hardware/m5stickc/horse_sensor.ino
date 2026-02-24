@@ -3,6 +3,9 @@
 #include <WiFiUdp.h>
 #include "config.h"
 
+// Device ID derived from hardware MAC address
+String deviceID;
+
 // Currently connected network
 int connectedNetworkIndex = -1;
 const char* currentPiIP = "10.42.0.1";  // Default
@@ -36,24 +39,35 @@ const unsigned long DISPLAY_TIMEOUT = 2000;
 unsigned long lastButtonCheck = 0;
 const unsigned long BUTTON_CHECK_INTERVAL = 1000;  // ms
 
+String getDeviceID() {
+  // Get last 4 hex digits of MAC address as unique device ID
+  uint64_t mac = ESP.getEfuseMac();
+  char id[5];
+  sprintf(id, "%04X", (uint16_t)(mac & 0xFFFF));
+  return String(id);
+}
+
 void setup() {
   M5.begin(true, true, false);
   M5.IMU.Init();
-  
+
+  // Get unique device ID from hardware
+  deviceID = getDeviceID();
+
   // Turn off screen immediately after initialization
   M5.Lcd.fillScreen(BLACK);
   M5.Axp.ScreenBreath(0);
-  
+
   // CPU optimization
   setCpuFrequencyMhz(80);
-  
+
   // Connect to WiFi
   connectToWiFi();
-  
+
   udp.begin(udpPort);
   lastSendTime = millis();
   lastConnectionCheck = millis();
-  
+
   delay(1000);
 }
 
@@ -133,29 +147,29 @@ void showStatus() {
   M5.Axp.ScreenBreath(50);
   displayOn = true;
   displayOnTime = millis();
-  
+
   // Clear and setup display
   M5.Lcd.fillScreen(BLACK);
   M5.Lcd.setRotation(0);  // UPDATED TO ROTATION 0
   M5.Lcd.setTextSize(2);
-  
+
   // Display Device Info
   M5.Lcd.setCursor(10, 20);
   M5.Lcd.setTextColor(YELLOW);
-  M5.Lcd.printf("Device %d\n", DEVICE_ID);
-  
+  M5.Lcd.printf("ID: %s\n", deviceID.c_str());
+
   M5.Lcd.setCursor(10, 50);
   M5.Lcd.setTextColor(CYAN);
   M5.Lcd.printf("%s\n", deviceName);
-  
+
   // Display Battery
   float battVoltage = M5.Axp.GetBatVoltage();
   float battPercent = (battVoltage - 3.0) / (4.2 - 3.0) * 100;
   if (battPercent > 100) battPercent = 100;
   if (battPercent < 0) battPercent = 0;
-  
+
   M5.Lcd.setCursor(10, 80);
-  
+
   // Color code battery level
   if (battPercent > 50) {
     M5.Lcd.setTextColor(GREEN);
@@ -165,7 +179,7 @@ void showStatus() {
     M5.Lcd.setTextColor(RED);
   }
   M5.Lcd.printf("Batt: %.0f%%\n", battPercent);
-  
+
   // Display connection status and network name
   M5.Lcd.setCursor(10, 110);
   if (WiFi.status() == WL_CONNECTED && connectedNetworkIndex >= 0) {
@@ -197,10 +211,10 @@ void loop() {
   if (WiFi.status() == WL_CONNECTED) {
     M5.IMU.getAccelData(&accX, &accY, &accZ);
     sampleNumber++;
-    
+
     char sample[100];
-    snprintf(sample, sizeof(sample), "%d,%lu,%.3f,%.3f,%.3f", 
-             DEVICE_ID, sampleNumber, accX, accY, accZ);
+    snprintf(sample, sizeof(sample), "%s,%lu,%.3f,%.3f,%.3f",
+             deviceID.c_str(), sampleNumber, accX, accY, accZ);
     batchBuffer[batchCount] = String(sample);
     batchCount++;
     
@@ -259,11 +273,11 @@ void sendBatteryStatus() {
   float battPercent = (battVoltage - 3.0) / (4.2 - 3.0) * 100;
   if (battPercent > 100) battPercent = 100;
   if (battPercent < 0) battPercent = 0;
-  
+
   char buffer[100];
-  snprintf(buffer, sizeof(buffer), "BAT,%d,%.2f,%.0f", 
-           DEVICE_ID, battVoltage, battPercent);
-  
+  snprintf(buffer, sizeof(buffer), "BAT,%s,%.2f,%.0f",
+           deviceID.c_str(), battVoltage, battPercent);
+
   udp.beginPacket(currentPiIP, udpPort);
   udp.print(buffer);
   udp.endPacket();
