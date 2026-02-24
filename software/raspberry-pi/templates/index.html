@@ -150,9 +150,32 @@
             </div>
         </article>
 
+        <article>
+            <header>
+                <h2>System</h2>
+            </header>
+            <div class="btn-group">
+                <button class="outline" onclick="confirmReboot()">Reboot Pi</button>
+                <button class="outline btn-stop" onclick="confirmShutdown()">Shutdown Pi</button>
+            </div>
+        </article>
+
         <footer>
             <small>Lame Data - Open Source Horse Biomechanics</small>
         </footer>
+
+        <dialog id="shutdownDialog">
+            <article>
+                <h3 id="dialogTitle">Confirm</h3>
+                <p id="dialogMessage"></p>
+                <footer>
+                    <div class="btn-group">
+                        <button class="outline" onclick="document.getElementById('shutdownDialog').close()">Cancel</button>
+                        <button class="btn-stop" id="dialogConfirm">Confirm</button>
+                    </div>
+                </footer>
+            </article>
+        </dialog>
     </main>
 
     <script>
@@ -322,6 +345,42 @@
                 if (data.success) {
                     alert(`Recording stopped!\nDuration: ${Math.floor(data.duration)}s\nSamples: ${data.samples_recorded.toLocaleString()}`);
                     updateStatus();
+                }
+            });
+        }
+
+        function confirmShutdown() {
+            showSystemDialog('Shutdown Pi', 'The Pi will shut down. You will need physical access to power it back on.', 'shutdown');
+        }
+
+        function confirmReboot() {
+            showSystemDialog('Reboot Pi', 'The Pi will reboot. The web UI will be unavailable for about a minute.', 'reboot');
+        }
+
+        function showSystemDialog(title, message, action) {
+            if (isRecording) {
+                message = 'A recording is in progress and will be saved automatically.\n\n' + message;
+            }
+            document.getElementById('dialogTitle').textContent = title;
+            document.getElementById('dialogMessage').textContent = message;
+            const confirmBtn = document.getElementById('dialogConfirm');
+            confirmBtn.onclick = () => executeSystemAction(action);
+            document.getElementById('shutdownDialog').showModal();
+        }
+
+        function executeSystemAction(action) {
+            document.getElementById('shutdownDialog').close();
+            fetch('/api/shutdown', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({action})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const statusDiv = document.getElementById('status');
+                    statusDiv.textContent = action === 'reboot' ? 'REBOOTING...' : 'SHUTTING DOWN...';
+                    statusDiv.className = 'status-indicator status-stopped';
                 }
             });
         }

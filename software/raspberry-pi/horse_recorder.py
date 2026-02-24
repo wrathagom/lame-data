@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify, send_file
 import socket
 import datetime
 import os
+import subprocess
 import threading
 import json
 import csv
@@ -640,6 +641,39 @@ def upload_status(filename):
     """Get upload progress for a session."""
     state = upload_states.get(filename, {'status': 'none', 'progress': 0, 'error': None})
     return jsonify(state)
+
+
+@app.route('/api/shutdown', methods=['POST'])
+def shutdown_pi():
+    """Safely shutdown the Raspberry Pi."""
+    data = request.json or {}
+    action = data.get('action', 'shutdown')
+    if action not in ('shutdown', 'reboot'):
+        return jsonify({'error': 'Invalid action'}), 400
+
+    # Stop any active recording first
+    if recording_state['is_recording'] and recording_state['recorder']:
+        recorder = recording_state['recorder']
+        footers = [
+            f"# End Time: {datetime.datetime.now().isoformat()}",
+            f"# Total Samples: {recording_state['samples_received']}",
+            f"# Note: Recording stopped by system {action}"
+        ]
+        recorder.stop(footers)
+        recording_state['is_recording'] = False
+        recording_state['recorder'] = None
+        recording_state['session_start'] = None
+
+    cmd = ['sudo', 'shutdown', '-r', 'now'] if action == 'reboot' else ['sudo', 'shutdown', 'now']
+
+    # Delay so the HTTP response can be sent
+    def do_shutdown():
+        threading.Event().wait(1.5)
+        subprocess.Popen(cmd)
+
+    threading.Thread(target=do_shutdown, daemon=True).start()
+
+    return jsonify({'success': True, 'action': action})
 
 
 if __name__ == '__main__':

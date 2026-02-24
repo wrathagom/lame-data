@@ -142,9 +142,22 @@ EOF
     fi
 fi
 
+# Configure passwordless shutdown for web UI
+echo ""
+echo "[6/7] Configuring shutdown permissions..."
+if [ "$SKIP_SYSTEMD" = true ]; then
+    echo "  Skipped (run with sudo)"
+else
+    REPO_OWNER_EARLY=$(stat -c '%U' "$SCRIPT_DIR")
+    SUDOERS_FILE="/etc/sudoers.d/lame-data-shutdown"
+    echo "$REPO_OWNER_EARLY ALL=(ALL) NOPASSWD: /sbin/shutdown" > "$SUDOERS_FILE"
+    chmod 0440 "$SUDOERS_FILE"
+    echo "  Granted $REPO_OWNER_EARLY passwordless shutdown access"
+fi
+
 # Install systemd services
 echo ""
-echo "[6/6] Installing systemd services..."
+echo "[7/7] Installing systemd services..."
 if [ "$SKIP_SYSTEMD" = true ]; then
     echo "  Skipped (run with sudo to install services)"
 else
