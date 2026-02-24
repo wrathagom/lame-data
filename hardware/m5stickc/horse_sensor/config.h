@@ -1,0 +1,27 @@
+#ifndef CONFIG_H
+#define CONFIG_H
+
+// WiFi Configuration - PRIORITY ORDER
+struct WiFiNetwork {
+  const char* ssid;
+  const char* password;
+  const char* piIP;
+};
+
+// Try networks in this order (first = highest priority)
+// Copy this file to config.h and update with your credentials
+WiFiNetwork networks[] = {
+  {"HorseNet", "Horse12345", "10.42.0.1"},             // Barn/field network (Pi hotspot)
+  {"Killers", "LucyElise@531", "192.168.86.44"} // Home network
+};
+const int NUM_NETWORKS = 2;
+
+// Device Configuration
+// Device ID is automatically derived from hardware MAC address
+// deviceName is optional - only used for on-screen display convenience
+const char* deviceName = "Sensor";
+
+// UDP Configuration
+const int udpPort = 8888;
+
+#endif

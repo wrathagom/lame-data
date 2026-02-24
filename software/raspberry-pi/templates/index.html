@@ -165,23 +165,28 @@
             const response = await fetch('/api/device_config');
             deviceConfig = await response.json();
             availablePositions = deviceConfig.positions || [];
+
+            // Add all configured devices to the set
+            Object.keys(deviceConfig.devices || {}).forEach(id => allDeviceIds.add(id));
+
             renderDeviceGrid();
         }
+
+        let allDeviceIds = new Set();
 
         function renderDeviceGrid() {
             const grid = document.getElementById('deviceGrid');
             if (!deviceConfig) return;
 
-            // Show cards for devices 1-5
+            // Show cards for all known devices (from config and live status)
             let html = '';
-            for (let i = 1; i <= 5; i++) {
-                const deviceId = i.toString();
+            for (const deviceId of allDeviceIds) {
                 const device = deviceConfig.devices[deviceId] || { position: '', color: '#999' };
 
                 html += `
                     <div class="device-config-card" id="device-card-${deviceId}">
                         <div class="device-header">
-                            <span class="device-title">Device ${deviceId}</span>
+                            <span class="device-title">ID: ${deviceId}</span>
                             <span class="battery-info" id="battery-${deviceId}">--</span>
                         </div>
                         <label for="position-${deviceId}">Position</label>
@@ -201,18 +206,20 @@
             if (!deviceConfig) return;
 
             // Collect positions from dropdowns
-            for (let i = 1; i <= 5; i++) {
-                const deviceId = i.toString();
+            const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'];
+            let colorIndex = 0;
+
+            for (const deviceId of allDeviceIds) {
                 const select = document.getElementById(`position-${deviceId}`);
                 const position = select.value;
 
                 if (position) {
                     // Use existing color or assign a default
-                    const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'];
                     deviceConfig.devices[deviceId] = {
                         position: position,
-                        color: deviceConfig.devices[deviceId]?.color || colors[i - 1]
+                        color: deviceConfig.devices[deviceId]?.color || colors[colorIndex % colors.length]
                     };
+                    colorIndex++;
                 } else {
                     // Remove device if position is empty
                     delete deviceConfig.devices[deviceId];
@@ -255,11 +262,20 @@
                     document.getElementById('location').disabled = isRecording;
                     document.getElementById('notes').disabled = isRecording;
 
+                    // Add all live devices to the set and re-render if needed
+                    const previousSize = allDeviceIds.size;
+                    Object.keys(data.device_status || {}).forEach(id => allDeviceIds.add(id));
+
+                    if (allDeviceIds.size > previousSize) {
+                        renderDeviceGrid();
+                    }
+
                     // Update device card statuses
-                    for (let i = 1; i <= 5; i++) {
-                        const deviceId = i.toString();
+                    for (const deviceId of allDeviceIds) {
                         const card = document.getElementById(`device-card-${deviceId}`);
                         const batterySpan = document.getElementById(`battery-${deviceId}`);
+
+                        if (!card || !batterySpan) continue;
 
                         if (data.device_status[deviceId]) {
                             const status = data.device_status[deviceId];

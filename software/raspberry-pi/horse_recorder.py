@@ -518,16 +518,15 @@ def parse_csv_for_upload(filepath):
                 parts = line.split(',')
                 if len(parts) >= 6:
                     try:
-                        device_id = int(parts[1])
+                        device_id = parts[1]  # Keep as string (4-char hex from MAC address)
                         x = float(parts[3])
                         y = float(parts[4])
                         z = float(parts[5])
                         mag = math.sqrt(x * x + y * y + z * z)
                         seq = int(parts[2])
                         position = ''
-                        dev_key = str(device_id)
-                        if dev_key in device_config:
-                            position = device_config[dev_key].get('position', '')
+                        if device_id in device_config:
+                            position = device_config[device_id].get('position', '')
 
                         readings.append({
                             'session_id': session_id,
