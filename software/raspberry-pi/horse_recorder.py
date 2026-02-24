@@ -1,4 +1,6 @@
 from flask import Flask, render_template, request, jsonify, send_file
+import signal
+import sys
 import socket
 import datetime
 import os
@@ -77,6 +79,7 @@ class BufferedRecorder:
                 while self.buffer:
                     self.file.write(self.buffer.popleft())
                 self.file.flush()
+                os.fsync(self.file.fileno())
 
     def stop(self, footer_lines=None):
         """Flush remaining data, write footers, close file"""
@@ -716,5 +719,67 @@ def shutdown_pi():
     return jsonify({'success': True, 'action': action})
 
 
+def recover_stale_recordings():
+    """Check for session files that were never properly closed (missing End Time).
+
+    This happens when the Pi loses power during a recording. We append a
+    recovery note so the data isn't silently incomplete.
+    """
+    for filename in os.listdir(DATA_DIR):
+        if not (filename.startswith('session_') and filename.endswith('.csv')):
+            continue
+
+        filepath = os.path.join(DATA_DIR, filename)
+        has_end_time = False
+        has_data = False
+
+        try:
+            with open(filepath, 'r') as f:
+                for line in f:
+                    if line.startswith('# End Time:'):
+                        has_end_time = True
+                        break
+                    elif not line.startswith('#') and not line.startswith('timestamp,'):
+                        has_data = True
+        except OSError:
+            continue
+
+        if has_data and not has_end_time:
+            print(f"Recovering incomplete session: {filename}")
+            try:
+                with open(filepath, 'a') as f:
+                    f.write(f"# End Time: unknown (recovered after unclean shutdown)\n")
+                    f.write(f"# Recovery Time: {datetime.datetime.now().isoformat()}\n")
+                    f.flush()
+                    os.fsync(f.fileno())
+            except OSError as e:
+                print(f"  Could not recover {filename}: {e}")
+
+
+def graceful_shutdown(signum, frame):
+    """Handle SIGTERM/SIGINT by flushing any active recording before exit."""
+    sig_name = signal.Signals(signum).name
+    print(f"Received {sig_name}, shutting down gracefully...")
+
+    if recording_state['is_recording'] and recording_state['recorder']:
+        recorder = recording_state['recorder']
+        footers = [
+            f"# End Time: {datetime.datetime.now().isoformat()}",
+            f"# Total Samples: {recording_state['samples_received']}",
+            f"# Note: Recording stopped by {sig_name}"
+        ]
+        recorder.stop(footers)
+        recording_state['is_recording'] = False
+        recording_state['recorder'] = None
+        print("Active recording saved.")
+
+    sys.exit(0)
+
+
 if __name__ == '__main__':
+    signal.signal(signal.SIGTERM, graceful_shutdown)
+    signal.signal(signal.SIGINT, graceful_shutdown)
+
+    recover_stale_recordings()
+
     app.run(host='0.0.0.0', port=WEB_PORT, debug=False)
