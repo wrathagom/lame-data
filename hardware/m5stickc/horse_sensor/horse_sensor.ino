@@ -56,6 +56,7 @@ String getDeviceID() {
 void setup() {
   M5.begin(true, true, false);
   M5.IMU.Init();
+  M5.IMU.SetAccelFsr(M5.IMU.AFS_16G);
 
   // Get unique device ID from hardware
   deviceID = getDeviceID();
