@@ -161,6 +161,7 @@
             <header>
                 <h2>System</h2>
             </header>
+            <button class="outline" onclick="confirmUpgrade()" style="width:100%; margin-bottom:1rem;">Update Software</button>
             <div class="btn-group">
                 <button class="outline" onclick="confirmReboot()">Reboot Pi</button>
                 <button class="outline btn-stop" onclick="confirmShutdown()">Shutdown Pi</button>
@@ -378,6 +379,10 @@
             showSystemDialog('Reboot Pi', 'The Pi will reboot. The web UI will be unavailable for about a minute.', 'reboot');
         }
 
+        function confirmUpgrade() {
+            showSystemDialog('Update Software', 'This will pull the latest code, install dependencies, and restart the service. The page will reconnect automatically.', 'upgrade');
+        }
+
         function showSystemDialog(title, message, action) {
             if (isRecording) {
                 message = 'A recording is in progress and will be saved automatically.\n\n' + message;
@@ -391,6 +396,30 @@
 
         function executeSystemAction(action) {
             document.getElementById('shutdownDialog').close();
+
+            if (action === 'upgrade') {
+                const statusDiv = document.getElementById('status');
+                statusDiv.textContent = 'UPDATING...';
+                statusDiv.className = 'status-indicator status-stopped';
+
+                fetch('/api/upgrade', { method: 'POST' })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            statusDiv.textContent = 'RESTARTING...';
+                            waitForReconnect();
+                        } else {
+                            const lastError = data.steps.find(s => !s.success);
+                            statusDiv.textContent = 'UPDATE FAILED';
+                            alert('Update failed at: ' + lastError.step + '\n' + lastError.error);
+                        }
+                    })
+                    .catch(() => {
+                        statusDiv.textContent = 'UPDATE FAILED';
+                    });
+                return;
+            }
+
             fetch('/api/shutdown', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -402,8 +431,24 @@
                     const statusDiv = document.getElementById('status');
                     statusDiv.textContent = action === 'reboot' ? 'REBOOTING...' : 'SHUTTING DOWN...';
                     statusDiv.className = 'status-indicator status-stopped';
+                    if (action === 'reboot') {
+                        waitForReconnect();
+                    }
                 }
             });
+        }
+
+        function waitForReconnect() {
+            const poll = setInterval(() => {
+                fetch('/api/status')
+                    .then(r => {
+                        if (r.ok) {
+                            clearInterval(poll);
+                            location.reload();
+                        }
+                    })
+                    .catch(() => {});
+            }, 2000);
         }
 
         // Initialize

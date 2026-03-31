@@ -150,7 +150,7 @@ if [ "$SKIP_SYSTEMD" = true ]; then
 else
     REPO_OWNER_EARLY=$(stat -c '%U' "$SCRIPT_DIR")
     SUDOERS_FILE="/etc/sudoers.d/lame-data-shutdown"
-    echo "$REPO_OWNER_EARLY ALL=(ALL) NOPASSWD: /sbin/shutdown" > "$SUDOERS_FILE"
+    echo "$REPO_OWNER_EARLY ALL=(ALL) NOPASSWD: /sbin/shutdown, /bin/systemctl restart horse-recorder" > "$SUDOERS_FILE"
     chmod 0440 "$SUDOERS_FILE"
     echo "  Granted $REPO_OWNER_EARLY passwordless shutdown access"
 fi

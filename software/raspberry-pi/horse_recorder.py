@@ -755,6 +755,55 @@ def upload_status(filename):
     return jsonify(state)
 
 
+@app.route('/api/upgrade', methods=['POST'])
+def upgrade_software():
+    """Pull latest code, install deps, and restart the service."""
+    repo_root = str(SCRIPT_DIR.parent.parent)
+    venv_pip = str(SCRIPT_DIR / 'venv' / 'bin' / 'pip')
+    requirements = str(SCRIPT_DIR / 'requirements.txt')
+
+    steps = []
+
+    # Step 1: git pull
+    result = subprocess.run(
+        ['git', 'pull'], cwd=repo_root,
+        capture_output=True, text=True, timeout=60
+    )
+    steps.append({
+        'step': 'git pull',
+        'success': result.returncode == 0,
+        'output': result.stdout.strip(),
+        'error': result.stderr.strip() if result.returncode != 0 else ''
+    })
+
+    if result.returncode != 0:
+        return jsonify({'success': False, 'steps': steps}), 500
+
+    # Step 2: pip install
+    result = subprocess.run(
+        [venv_pip, 'install', '-q', '-r', requirements],
+        capture_output=True, text=True, timeout=120
+    )
+    steps.append({
+        'step': 'pip install',
+        'success': result.returncode == 0,
+        'output': result.stdout.strip(),
+        'error': result.stderr.strip() if result.returncode != 0 else ''
+    })
+
+    if result.returncode != 0:
+        return jsonify({'success': False, 'steps': steps}), 500
+
+    # Step 3: schedule service restart (delayed so response can be sent)
+    def do_restart():
+        threading.Event().wait(1.5)
+        subprocess.Popen(['sudo', 'systemctl', 'restart', 'horse-recorder'])
+
+    threading.Thread(target=do_restart, daemon=True).start()
+
+    return jsonify({'success': True, 'steps': steps})
+
+
 @app.route('/api/shutdown', methods=['POST'])
 def shutdown_pi():
     """Safely shutdown the Raspberry Pi."""
