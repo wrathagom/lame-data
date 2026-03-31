@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
+<script>(function(){var t=localStorage.getItem('theme')||'catppuccin-mocha';document.documentElement.setAttribute('data-theme-palette',t);if(['catppuccin-latte'].includes(t))document.documentElement.setAttribute('data-theme','light');})()</script>
 <head>
     <title>Settings - Lame Data</title>
     <meta charset="utf-8">
@@ -86,6 +87,20 @@
                 <a href="/settings" class="active">Settings</a>
             </div>
         </header>
+
+        <article>
+            <h2>Theme</h2>
+            <label for="themeSelect">Color Scheme</label>
+            <select id="themeSelect" onchange="setTheme(this.value)">
+                <option value="catppuccin-mocha">Catppuccin Mocha</option>
+                <option value="catppuccin-latte">Catppuccin Latte</option>
+                <option value="gruvbox-dark">Gruvbox Dark</option>
+                <option value="solarized-dark">Solarized Dark</option>
+                <option value="nord">Nord</option>
+                <option value="dracula">Dracula</option>
+                <option value="tokyo-night">Tokyo Night</option>
+            </select>
+        </article>
 
         <article>
             <h2>Device Configuration</h2>
@@ -322,6 +337,14 @@
                     .then(r => { if (r.ok) { clearInterval(poll); location.reload(); } })
                     .catch(() => {});
             }, 2000);
+        }
+
+        // Theme switcher
+        document.getElementById('themeSelect').value = localStorage.getItem('theme') || 'catppuccin-mocha';
+
+        function setTheme(theme) {
+            localStorage.setItem('theme', theme);
+            location.reload();
         }
 
         loadDeviceConfig().then(() => {

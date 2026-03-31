@@ -1,33 +1,119 @@
-/* Catppuccin Mocha theme overrides for Pico CSS */
+/* ========================================
+   Theme System for Lame Data
+   All themes map to the same --ctp-* variables.
+   Pico overrides and component styles reference
+   these variables, so swapping themes Just Works.
+   ======================================== */
+
+/* === Default fallback (Catppuccin Mocha) === */
 :root {
-    /* Catppuccin Mocha palette */
-    --ctp-rosewater: #f5e0dc;
-    --ctp-flamingo: #f2cdcd;
-    --ctp-pink: #f5c2e7;
-    --ctp-mauve: #cba6f7;
-    --ctp-red: #f38ba8;
-    --ctp-maroon: #eba0ac;
-    --ctp-peach: #fab387;
-    --ctp-yellow: #f9e2af;
-    --ctp-green: #a6e3a1;
-    --ctp-teal: #94e2d5;
-    --ctp-sky: #89dceb;
-    --ctp-sapphire: #74c7ec;
-    --ctp-blue: #89b4fa;
-    --ctp-lavender: #b4befe;
-    --ctp-text: #cdd6f4;
-    --ctp-subtext1: #bac2de;
-    --ctp-subtext0: #a6adc8;
-    --ctp-overlay2: #9399b2;
-    --ctp-overlay1: #7f849c;
-    --ctp-overlay0: #6c7086;
-    --ctp-surface2: #585b70;
-    --ctp-surface1: #45475a;
-    --ctp-surface0: #313244;
-    --ctp-base: #1e1e2e;
-    --ctp-mantle: #181825;
-    --ctp-crust: #11111b;
+    --ctp-rosewater: #f5e0dc; --ctp-flamingo: #f2cdcd; --ctp-pink: #f5c2e7;
+    --ctp-mauve: #cba6f7; --ctp-red: #f38ba8; --ctp-maroon: #eba0ac;
+    --ctp-peach: #fab387; --ctp-yellow: #f9e2af; --ctp-green: #a6e3a1;
+    --ctp-teal: #94e2d5; --ctp-sky: #89dceb; --ctp-sapphire: #74c7ec;
+    --ctp-blue: #89b4fa; --ctp-lavender: #b4befe;
+    --ctp-text: #cdd6f4; --ctp-subtext1: #bac2de; --ctp-subtext0: #a6adc8;
+    --ctp-overlay2: #9399b2; --ctp-overlay1: #7f849c; --ctp-overlay0: #6c7086;
+    --ctp-surface2: #585b70; --ctp-surface1: #45475a; --ctp-surface0: #313244;
+    --ctp-base: #1e1e2e; --ctp-mantle: #181825; --ctp-crust: #11111b;
 }
+
+/* === Catppuccin Mocha === */
+[data-theme-palette="catppuccin-mocha"] {
+    --ctp-rosewater: #f5e0dc; --ctp-flamingo: #f2cdcd; --ctp-pink: #f5c2e7;
+    --ctp-mauve: #cba6f7; --ctp-red: #f38ba8; --ctp-maroon: #eba0ac;
+    --ctp-peach: #fab387; --ctp-yellow: #f9e2af; --ctp-green: #a6e3a1;
+    --ctp-teal: #94e2d5; --ctp-sky: #89dceb; --ctp-sapphire: #74c7ec;
+    --ctp-blue: #89b4fa; --ctp-lavender: #b4befe;
+    --ctp-text: #cdd6f4; --ctp-subtext1: #bac2de; --ctp-subtext0: #a6adc8;
+    --ctp-overlay2: #9399b2; --ctp-overlay1: #7f849c; --ctp-overlay0: #6c7086;
+    --ctp-surface2: #585b70; --ctp-surface1: #45475a; --ctp-surface0: #313244;
+    --ctp-base: #1e1e2e; --ctp-mantle: #181825; --ctp-crust: #11111b;
+}
+
+/* === Catppuccin Latte (light) === */
+[data-theme-palette="catppuccin-latte"] {
+    --ctp-rosewater: #dc8a78; --ctp-flamingo: #dd7878; --ctp-pink: #ea76cb;
+    --ctp-mauve: #8839ef; --ctp-red: #d20f39; --ctp-maroon: #e64553;
+    --ctp-peach: #fe640b; --ctp-yellow: #df8e1d; --ctp-green: #40a02b;
+    --ctp-teal: #179299; --ctp-sky: #04a5e5; --ctp-sapphire: #209fb5;
+    --ctp-blue: #1e66f5; --ctp-lavender: #7287fd;
+    --ctp-text: #4c4f69; --ctp-subtext1: #5c5f77; --ctp-subtext0: #6c6f85;
+    --ctp-overlay2: #7c7f93; --ctp-overlay1: #8c8fa1; --ctp-overlay0: #9ca0b0;
+    --ctp-surface2: #acb0be; --ctp-surface1: #bcc0cc; --ctp-surface0: #ccd0da;
+    --ctp-base: #eff1f5; --ctp-mantle: #e6e9ef; --ctp-crust: #dce0e8;
+}
+
+/* === Gruvbox Dark === */
+[data-theme-palette="gruvbox-dark"] {
+    --ctp-rosewater: #d65d0e; --ctp-flamingo: #d65d0e; --ctp-pink: #d3869b;
+    --ctp-mauve: #d3869b; --ctp-red: #fb4934; --ctp-maroon: #cc241d;
+    --ctp-peach: #fe8019; --ctp-yellow: #fabd2f; --ctp-green: #b8bb26;
+    --ctp-teal: #8ec07c; --ctp-sky: #83a598; --ctp-sapphire: #83a598;
+    --ctp-blue: #83a598; --ctp-lavender: #d3869b;
+    --ctp-text: #ebdbb2; --ctp-subtext1: #d5c4a1; --ctp-subtext0: #bdae93;
+    --ctp-overlay2: #a89984; --ctp-overlay1: #928374; --ctp-overlay0: #7c6f64;
+    --ctp-surface2: #504945; --ctp-surface1: #3c3836; --ctp-surface0: #32302f;
+    --ctp-base: #282828; --ctp-mantle: #1d2021; --ctp-crust: #1d2021;
+}
+
+/* === Solarized Dark === */
+[data-theme-palette="solarized-dark"] {
+    --ctp-rosewater: #cb4b16; --ctp-flamingo: #cb4b16; --ctp-pink: #d33682;
+    --ctp-mauve: #6c71c4; --ctp-red: #dc322f; --ctp-maroon: #cb4b16;
+    --ctp-peach: #cb4b16; --ctp-yellow: #b58900; --ctp-green: #859900;
+    --ctp-teal: #2aa198; --ctp-sky: #2aa198; --ctp-sapphire: #268bd2;
+    --ctp-blue: #268bd2; --ctp-lavender: #6c71c4;
+    --ctp-text: #93a1a1; --ctp-subtext1: #839496; --ctp-subtext0: #657b83;
+    --ctp-overlay2: #586e75; --ctp-overlay1: #586e75; --ctp-overlay0: #073642;
+    --ctp-surface2: #073642; --ctp-surface1: #073642; --ctp-surface0: #002b36;
+    --ctp-base: #002b36; --ctp-mantle: #00212b; --ctp-crust: #001a22;
+}
+
+/* === Nord === */
+[data-theme-palette="nord"] {
+    --ctp-rosewater: #d08770; --ctp-flamingo: #d08770; --ctp-pink: #b48ead;
+    --ctp-mauve: #b48ead; --ctp-red: #bf616a; --ctp-maroon: #bf616a;
+    --ctp-peach: #d08770; --ctp-yellow: #ebcb8b; --ctp-green: #a3be8c;
+    --ctp-teal: #8fbcbb; --ctp-sky: #88c0d0; --ctp-sapphire: #81a1c1;
+    --ctp-blue: #81a1c1; --ctp-lavender: #b48ead;
+    --ctp-text: #eceff4; --ctp-subtext1: #e5e9f0; --ctp-subtext0: #d8dee9;
+    --ctp-overlay2: #aab1c0; --ctp-overlay1: #8891a5; --ctp-overlay0: #616e88;
+    --ctp-surface2: #434c5e; --ctp-surface1: #3b4252; --ctp-surface0: #2e3440;
+    --ctp-base: #2e3440; --ctp-mantle: #272c36; --ctp-crust: #21262e;
+}
+
+/* === Dracula === */
+[data-theme-palette="dracula"] {
+    --ctp-rosewater: #ffb86c; --ctp-flamingo: #ff79c6; --ctp-pink: #ff79c6;
+    --ctp-mauve: #bd93f9; --ctp-red: #ff5555; --ctp-maroon: #ff5555;
+    --ctp-peach: #ffb86c; --ctp-yellow: #f1fa8c; --ctp-green: #50fa7b;
+    --ctp-teal: #8be9fd; --ctp-sky: #8be9fd; --ctp-sapphire: #8be9fd;
+    --ctp-blue: #8be9fd; --ctp-lavender: #bd93f9;
+    --ctp-text: #f8f8f2; --ctp-subtext1: #e2e2dc; --ctp-subtext0: #c0c0b8;
+    --ctp-overlay2: #8a8a80; --ctp-overlay1: #6272a4; --ctp-overlay0: #565966;
+    --ctp-surface2: #44475a; --ctp-surface1: #383a4a; --ctp-surface0: #313240;
+    --ctp-base: #282a36; --ctp-mantle: #21222c; --ctp-crust: #191a21;
+}
+
+/* === Tokyo Night === */
+[data-theme-palette="tokyo-night"] {
+    --ctp-rosewater: #ff9e64; --ctp-flamingo: #f7768e; --ctp-pink: #f7768e;
+    --ctp-mauve: #bb9af7; --ctp-red: #f7768e; --ctp-maroon: #f7768e;
+    --ctp-peach: #ff9e64; --ctp-yellow: #e0af68; --ctp-green: #9ece6a;
+    --ctp-teal: #73daca; --ctp-sky: #7dcfff; --ctp-sapphire: #7aa2f7;
+    --ctp-blue: #7aa2f7; --ctp-lavender: #bb9af7;
+    --ctp-text: #c0caf5; --ctp-subtext1: #a9b1d6; --ctp-subtext0: #9aa5ce;
+    --ctp-overlay2: #787c99; --ctp-overlay1: #565f89; --ctp-overlay0: #414868;
+    --ctp-surface2: #3b4261; --ctp-surface1: #292e42; --ctp-surface0: #24283b;
+    --ctp-base: #1a1b26; --ctp-mantle: #16161e; --ctp-crust: #13131a;
+}
+
+/* ========================================
+   Pico CSS Overrides (theme-agnostic)
+   These reference --ctp-* variables which
+   are set by whichever palette is active.
+   ======================================== */
 
 [data-theme="dark"] {
     --pico-background-color: var(--ctp-base);
@@ -52,6 +138,34 @@
     --pico-switch-checked-background-color: var(--ctp-mauve);
     --pico-box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
+
+[data-theme="light"] {
+    --pico-background-color: var(--ctp-base);
+    --pico-color: var(--ctp-text);
+    --pico-card-background-color: var(--ctp-surface0);
+    --pico-card-sectioning-background-color: var(--ctp-mantle);
+    --pico-muted-color: var(--ctp-overlay1);
+    --pico-muted-border-color: var(--ctp-surface1);
+    --pico-primary: var(--ctp-mauve);
+    --pico-primary-hover: var(--ctp-lavender);
+    --pico-primary-background: var(--ctp-mauve);
+    --pico-primary-inverse: var(--ctp-base);
+    --pico-secondary: var(--ctp-surface2);
+    --pico-secondary-hover: var(--ctp-overlay0);
+    --pico-contrast: var(--ctp-text);
+    --pico-contrast-inverse: var(--ctp-base);
+    --pico-border-radius: 0.5rem;
+    --pico-form-element-background-color: var(--ctp-surface0);
+    --pico-form-element-border-color: var(--ctp-surface1);
+    --pico-form-element-focus-color: var(--ctp-mauve);
+    --pico-switch-color: var(--ctp-surface2);
+    --pico-switch-checked-background-color: var(--ctp-mauve);
+    --pico-box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* ========================================
+   Shared Components
+   ======================================== */
 
 /* Nav bar */
 .nav-bar {
@@ -82,7 +196,7 @@
     border-color: var(--ctp-mauve);
 }
 
-/* Status colors using Catppuccin */
+/* Status colors */
 .status-recording {
     background: var(--ctp-green) !important;
     color: var(--ctp-crust) !important;
