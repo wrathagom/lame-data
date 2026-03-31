@@ -237,6 +237,10 @@ def index():
 def sessions_page():
     return render_template('sessions.html')
 
+@app.route('/config')
+def config_page():
+    return render_template('config.html')
+
 @app.route('/view/<filename>')
 def view_session(filename):
     return render_template('view_session.html', filename=filename)

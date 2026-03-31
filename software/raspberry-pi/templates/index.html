@@ -6,7 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="/static/css/pico.min.css">
     <style>
-        /* Custom status indicator styles */
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        header h1 {
+            margin-bottom: 0.5rem;
+        }
         .status-indicator {
             font-size: 1.5rem;
             font-weight: bold;
@@ -32,53 +38,6 @@
         .metric-row:last-child {
             border-bottom: none;
         }
-        .device-card {
-            padding: 1rem;
-            margin: 0.5rem 0;
-            border-radius: var(--pico-border-radius);
-            border-left: 4px solid var(--pico-primary);
-        }
-        .device-connected {
-            background: var(--pico-card-background-color);
-            border-left-color: #2ecc71;
-        }
-        .device-disconnected {
-            background: #2a2a2a;
-            border-left-color: #C44638;
-        }
-        .device-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1rem;
-            margin: 1rem 0;
-        }
-        .device-config-card {
-            padding: 1rem;
-            border-radius: var(--pico-border-radius);
-            background: var(--pico-card-background-color);
-            border: 2px solid var(--pico-muted-border-color);
-        }
-        .device-config-card.connected {
-            border-color: #2ecc71;
-        }
-        .device-config-card.disconnected {
-            border-color: #C44638;
-            opacity: 0.6;
-        }
-        .device-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0.5rem;
-        }
-        .device-title {
-            font-weight: bold;
-            font-size: 1.1rem;
-        }
-        .battery-info {
-            font-size: 0.9rem;
-            color: var(--pico-muted-color);
-        }
         .btn-group {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -88,13 +47,66 @@
             --pico-background-color: #C44638;
             --pico-border-color: #C44638;
         }
-        header {
+
+        /* Horse diagram */
+        .horse-diagram {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: auto;
+            gap: 0.5rem;
+            max-width: 340px;
+            margin: 0 auto;
+        }
+        .horse-pos {
+            padding: 0.5rem 0.25rem;
+            border-radius: var(--pico-border-radius);
             text-align: center;
-            margin-bottom: 2rem;
+            font-size: 0.8rem;
+            border: 2px solid transparent;
+            min-height: 52px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
-        header h1 {
-            margin-bottom: 0.5rem;
+        .horse-pos .pos-label {
+            font-weight: bold;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
         }
+        .horse-pos .pos-detail {
+            font-size: 0.7rem;
+            margin-top: 2px;
+            opacity: 0.85;
+        }
+        .pos-none {
+            background: #333;
+            color: #777;
+            border-color: #444;
+        }
+        .pos-red {
+            background: rgba(196, 70, 56, 0.25);
+            color: #e8756a;
+            border-color: #C44638;
+        }
+        .pos-yellow {
+            background: rgba(240, 173, 78, 0.25);
+            color: #f0c36e;
+            border-color: #f0ad4e;
+        }
+        .pos-green {
+            background: rgba(46, 204, 113, 0.2);
+            color: #5ee8a0;
+            border-color: #2ecc71;
+        }
+        /* Grid placement */
+        .pos-poll     { grid-column: 2; }
+        .pos-lf       { grid-column: 1; }
+        .pos-rf       { grid-column: 3; }
+        .pos-withers  { grid-column: 2; }
+        .pos-girth    { grid-column: 2; }
+        .pos-lh       { grid-column: 1; }
+        .pos-rh       { grid-column: 3; }
     </style>
 </head>
 <body>
@@ -103,10 +115,44 @@
             <h1>Lame Data</h1>
             <nav>
                 <ul>
-                    <li><a href="/sessions">View Past Sessions</a></li>
+                    <li><a href="/sessions">Sessions</a></li>
+                    <li><a href="/config">Config</a></li>
                 </ul>
             </nav>
         </header>
+
+        <article>
+            <div class="horse-diagram" id="horseDiagram">
+                <div class="horse-pos pos-poll pos-none" id="hp-poll">
+                    <span class="pos-label">Poll</span>
+                    <span class="pos-detail">---</span>
+                </div>
+                <div class="horse-pos pos-lf pos-none" id="hp-left_front">
+                    <span class="pos-label">Left Front</span>
+                    <span class="pos-detail">---</span>
+                </div>
+                <div class="horse-pos pos-rf pos-none" id="hp-right_front">
+                    <span class="pos-label">Right Front</span>
+                    <span class="pos-detail">---</span>
+                </div>
+                <div class="horse-pos pos-withers pos-none" id="hp-withers">
+                    <span class="pos-label">Withers</span>
+                    <span class="pos-detail">---</span>
+                </div>
+                <div class="horse-pos pos-girth pos-none" id="hp-girth">
+                    <span class="pos-label">Girth</span>
+                    <span class="pos-detail">---</span>
+                </div>
+                <div class="horse-pos pos-lh pos-none" id="hp-left_rear">
+                    <span class="pos-label">Left Hind</span>
+                    <span class="pos-detail">---</span>
+                </div>
+                <div class="horse-pos pos-rh pos-none" id="hp-right_rear">
+                    <span class="pos-label">Right Hind</span>
+                    <span class="pos-detail">---</span>
+                </div>
+            </div>
+        </article>
 
         <article>
             <div id="status" class="status-indicator status-stopped">NOT RECORDING</div>
@@ -128,28 +174,12 @@
                     <button id="resyncBtn" class="outline" onclick="triggerResync()" disabled>Re-sync Sensors</button>
                 </div>
             </div>
-        </article>
 
-        <article>
-            <header>
-                <h2>Device Configuration</h2>
-            </header>
-            <div id="deviceGrid" class="device-grid">
-                <!-- Device cards will be dynamically populated -->
-            </div>
-            <button onclick="saveDeviceConfig()">Save Configuration</button>
-        </article>
-
-        <article>
-            <header>
-                <h2>Session Info</h2>
-            </header>
-
-            <label for="location">Session Location</label>
+            <label for="location" style="margin-top:1rem;">Session Location</label>
             <input type="text" id="location" placeholder="e.g., Indoor arena, outdoor field" value="field">
 
             <label for="notes">Notes</label>
-            <textarea id="notes" rows="3" placeholder="e.g., Walk in hand, Trot in hand, Lunge left, etc."></textarea>
+            <textarea id="notes" rows="2" placeholder="e.g., Walk in hand, Trot in hand, Lunge left, etc."></textarea>
 
             <div class="btn-group">
                 <button id="startBtn" onclick="startRecording()">Start Recording</button>
@@ -189,83 +219,54 @@
     <script>
         let isRecording = false;
         let deviceConfig = null;
-        let availablePositions = [];
+        // Reverse map: position -> deviceId
+        let positionMap = {};
 
-        // Load device configuration on page load
         async function loadDeviceConfig() {
             const response = await fetch('/api/device_config');
             deviceConfig = await response.json();
-            availablePositions = deviceConfig.positions || [];
-
-            // Add all configured devices to the set
-            Object.keys(deviceConfig.devices || {}).forEach(id => allDeviceIds.add(id));
-
-            renderDeviceGrid();
-        }
-
-        let allDeviceIds = new Set();
-
-        function renderDeviceGrid() {
-            const grid = document.getElementById('deviceGrid');
-            if (!deviceConfig) return;
-
-            // Show cards for all known devices (from config and live status)
-            let html = '';
-            for (const deviceId of allDeviceIds) {
-                const device = deviceConfig.devices[deviceId] || { position: '', color: '#999' };
-
-                html += `
-                    <div class="device-config-card" id="device-card-${deviceId}">
-                        <div class="device-header">
-                            <span class="device-title">ID: ${deviceId}</span>
-                            <span class="battery-info" id="battery-${deviceId}">--</span>
-                        </div>
-                        <label for="position-${deviceId}">Position</label>
-                        <select id="position-${deviceId}" data-device="${deviceId}">
-                            <option value="">Not in use</option>
-                            ${availablePositions.map(pos =>
-                                `<option value="${pos.id}" ${device.position === pos.id ? 'selected' : ''}>${pos.label}</option>`
-                            ).join('')}
-                        </select>
-                    </div>
-                `;
-            }
-            grid.innerHTML = html;
-        }
-
-        async function saveDeviceConfig() {
-            if (!deviceConfig) return;
-
-            // Collect positions from dropdowns
-            const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'];
-            let colorIndex = 0;
-
-            for (const deviceId of allDeviceIds) {
-                const select = document.getElementById(`position-${deviceId}`);
-                const position = select.value;
-
-                if (position) {
-                    // Use existing color or assign a default
-                    deviceConfig.devices[deviceId] = {
-                        position: position,
-                        color: deviceConfig.devices[deviceId]?.color || colors[colorIndex % colors.length]
-                    };
-                    colorIndex++;
-                } else {
-                    // Remove device if position is empty
-                    delete deviceConfig.devices[deviceId];
+            // Build position -> deviceId lookup
+            positionMap = {};
+            for (const [deviceId, dev] of Object.entries(deviceConfig.devices || {})) {
+                if (dev.position) {
+                    positionMap[dev.position] = deviceId;
                 }
             }
+        }
 
-            // Save to server
-            const response = await fetch('/api/device_config', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(deviceConfig)
-            });
+        function updateHorseDiagram(deviceStatus) {
+            const positions = ['poll', 'left_front', 'right_front', 'withers', 'girth', 'left_rear', 'right_rear'];
 
-            if (response.ok) {
-                alert('Configuration saved!');
+            for (const pos of positions) {
+                const el = document.getElementById('hp-' + pos);
+                if (!el) continue;
+
+                const deviceId = positionMap[pos];
+                const detail = el.querySelector('.pos-detail');
+
+                if (!deviceId) {
+                    // No sensor assigned to this position
+                    el.className = el.className.replace(/pos-(none|red|yellow|green)/, 'pos-none');
+                    detail.textContent = '---';
+                    continue;
+                }
+
+                const status = deviceStatus[deviceId];
+                let colorClass, detailText;
+
+                if (!status || !status.connected) {
+                    colorClass = 'pos-red';
+                    detailText = deviceId + ' (offline)';
+                } else if (status.percent < 50) {
+                    colorClass = 'pos-yellow';
+                    detailText = deviceId + ' ' + status.percent.toFixed(0) + '%';
+                } else {
+                    colorClass = 'pos-green';
+                    detailText = deviceId + ' ' + status.percent.toFixed(0) + '%';
+                }
+
+                el.className = el.className.replace(/pos-(none|red|yellow|green)/, colorClass);
+                detail.textContent = detailText;
             }
         }
 
@@ -297,37 +298,7 @@
                     document.getElementById('location').disabled = isRecording;
                     document.getElementById('notes').disabled = isRecording;
 
-                    // Add all live devices to the set and re-render if needed
-                    const previousSize = allDeviceIds.size;
-                    Object.keys(data.device_status || {}).forEach(id => allDeviceIds.add(id));
-
-                    if (allDeviceIds.size > previousSize) {
-                        renderDeviceGrid();
-                    }
-
-                    // Update device card statuses
-                    for (const deviceId of allDeviceIds) {
-                        const card = document.getElementById(`device-card-${deviceId}`);
-                        const batterySpan = document.getElementById(`battery-${deviceId}`);
-
-                        if (!card || !batterySpan) continue;
-
-                        if (data.device_status[deviceId]) {
-                            const status = data.device_status[deviceId];
-                            card.classList.toggle('connected', status.connected);
-                            card.classList.toggle('disconnected', !status.connected);
-
-                            if (status.connected) {
-                                batterySpan.textContent = `${status.percent.toFixed(0)}%`;
-                            } else {
-                                batterySpan.textContent = 'Offline';
-                            }
-                        } else {
-                            card.classList.remove('connected');
-                            card.classList.add('disconnected');
-                            batterySpan.textContent = '--';
-                        }
-                    }
+                    updateHorseDiagram(data.device_status || {});
                 });
         }
 
@@ -342,16 +313,12 @@
             })
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
-                    updateStatus();
-                }
+                if (data.success) updateStatus();
             });
         }
 
         function stopRecording() {
-            fetch('/api/stop', {
-                method: 'POST'
-            })
+            fetch('/api/stop', { method: 'POST' })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -363,11 +330,9 @@
 
         function triggerResync() {
             fetch('/api/sync', { method: 'POST' })
-                .then(response => response.json())
+                .then(r => r.json())
                 .then(data => {
-                    if (data.success) {
-                        document.getElementById('syncCount').textContent = '0';
-                    }
+                    if (data.success) document.getElementById('syncCount').textContent = '0';
                 });
         }
 
@@ -431,9 +396,7 @@
                     const statusDiv = document.getElementById('status');
                     statusDiv.textContent = action === 'reboot' ? 'REBOOTING...' : 'SHUTTING DOWN...';
                     statusDiv.className = 'status-indicator status-stopped';
-                    if (action === 'reboot') {
-                        waitForReconnect();
-                    }
+                    if (action === 'reboot') waitForReconnect();
                 }
             });
         }
@@ -441,20 +404,16 @@
         function waitForReconnect() {
             const poll = setInterval(() => {
                 fetch('/api/status')
-                    .then(r => {
-                        if (r.ok) {
-                            clearInterval(poll);
-                            location.reload();
-                        }
-                    })
+                    .then(r => { if (r.ok) { clearInterval(poll); location.reload(); } })
                     .catch(() => {});
             }, 2000);
         }
 
         // Initialize
-        loadDeviceConfig();
-        setInterval(updateStatus, 1000);
-        updateStatus();
+        loadDeviceConfig().then(() => {
+            updateStatus();
+            setInterval(updateStatus, 1000);
+        });
     </script>
 </body>
 </html>

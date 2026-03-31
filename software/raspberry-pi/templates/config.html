@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <title>Device Config - Lame Data</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/static/css/pico.min.css">
+    <style>
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .device-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        .device-config-card {
+            padding: 1rem;
+            border-radius: var(--pico-border-radius);
+            background: var(--pico-card-background-color);
+            border: 2px solid var(--pico-muted-border-color);
+        }
+        .device-config-card.connected {
+            border-color: #2ecc71;
+        }
+        .device-config-card.disconnected {
+            border-color: #C44638;
+            opacity: 0.6;
+        }
+        .device-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        .device-title {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        .battery-info {
+            font-size: 0.9rem;
+            color: var(--pico-muted-color);
+        }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <header>
+            <h1>Device Configuration</h1>
+            <nav>
+                <ul>
+                    <li><a href="/">Back to Recorder</a></li>
+                    <li><a href="/sessions">Sessions</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <article>
+            <p>Assign each sensor to a position on the horse. Sensors appear here automatically when they connect.</p>
+            <div id="deviceGrid" class="device-grid"></div>
+            <button onclick="saveDeviceConfig()">Save Configuration</button>
+        </article>
+
+        <footer>
+            <small>Lame Data - Open Source Horse Biomechanics</small>
+        </footer>
+    </main>
+
+    <script>
+        let deviceConfig = null;
+        let availablePositions = [];
+        let allDeviceIds = new Set();
+
+        async function loadDeviceConfig() {
+            const response = await fetch('/api/device_config');
+            deviceConfig = await response.json();
+            availablePositions = deviceConfig.positions || [];
+            Object.keys(deviceConfig.devices || {}).forEach(id => allDeviceIds.add(id));
+            renderDeviceGrid();
+        }
+
+        function renderDeviceGrid() {
+            const grid = document.getElementById('deviceGrid');
+            if (!deviceConfig) return;
+
+            let html = '';
+            for (const deviceId of allDeviceIds) {
+                const device = deviceConfig.devices[deviceId] || { position: '', color: '#999' };
+                html += `
+                    <div class="device-config-card" id="device-card-${deviceId}">
+                        <div class="device-header">
+                            <span class="device-title">ID: ${deviceId}</span>
+                            <span class="battery-info" id="battery-${deviceId}">--</span>
+                        </div>
+                        <label for="position-${deviceId}">Position</label>
+                        <select id="position-${deviceId}" data-device="${deviceId}">
+                            <option value="">Not in use</option>
+                            ${availablePositions.map(pos =>
+                                `<option value="${pos.id}" ${device.position === pos.id ? 'selected' : ''}>${pos.label}</option>`
+                            ).join('')}
+                        </select>
+                    </div>
+                `;
+            }
+
+            if (allDeviceIds.size === 0) {
+                html = '<p style="color: var(--pico-muted-color); text-align: center;">No sensors detected yet. Power on your sensors and wait for them to connect.</p>';
+            }
+
+            grid.innerHTML = html;
+        }
+
+        async function saveDeviceConfig() {
+            if (!deviceConfig) return;
+
+            const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'];
+            let colorIndex = 0;
+
+            for (const deviceId of allDeviceIds) {
+                const select = document.getElementById(`position-${deviceId}`);
+                const position = select.value;
+
+                if (position) {
+                    deviceConfig.devices[deviceId] = {
+                        position: position,
+                        color: deviceConfig.devices[deviceId]?.color || colors[colorIndex % colors.length]
+                    };
+                    colorIndex++;
+                } else {
+                    delete deviceConfig.devices[deviceId];
+                }
+            }
+
+            const response = await fetch('/api/device_config', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(deviceConfig)
+            });
+
+            if (response.ok) {
+                alert('Configuration saved!');
+            }
+        }
+
+        function updateDeviceStatus() {
+            fetch('/api/status')
+                .then(r => r.json())
+                .then(data => {
+                    const previousSize = allDeviceIds.size;
+                    Object.keys(data.device_status || {}).forEach(id => allDeviceIds.add(id));
+
+                    if (allDeviceIds.size > previousSize) {
+                        renderDeviceGrid();
+                    }
+
+                    for (const deviceId of allDeviceIds) {
+                        const card = document.getElementById(`device-card-${deviceId}`);
+                        const batterySpan = document.getElementById(`battery-${deviceId}`);
+                        if (!card || !batterySpan) continue;
+
+                        if (data.device_status[deviceId]) {
+                            const status = data.device_status[deviceId];
+                            card.classList.toggle('connected', status.connected);
+                            card.classList.toggle('disconnected', !status.connected);
+                            batterySpan.textContent = status.connected
+                                ? `${status.percent.toFixed(0)}%`
+                                : 'Offline';
+                        } else {
+                            card.classList.remove('connected');
+                            card.classList.add('disconnected');
+                            batterySpan.textContent = '--';
+                        }
+                    }
+                });
+        }
+
+        loadDeviceConfig().then(() => {
+            updateDeviceStatus();
+            setInterval(updateDeviceStatus, 2000);
+        });
+    </script>
+</body>
+</html>
