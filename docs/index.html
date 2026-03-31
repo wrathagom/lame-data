@@ -513,7 +513,7 @@ nav {
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
   margin: 48px auto 0;
-  max-width: 900px;
+  max-width: 1200px;
   text-align: left;
 }
 
@@ -523,21 +523,18 @@ nav {
   padding: 28px 24px;
   background: var(--bg-card);
   transition: border-color 0.3s;
+  display: flex;
+  flex-direction: column;
 }
 .tier:hover { border-color: var(--border-light); }
 
-.tier-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
 .tier-name {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 16px;
+  font-size: 12px;
   letter-spacing: 2px;
   text-transform: uppercase;
   color: var(--green);
+  margin-bottom: 10px;
 }
 .tier-title {
   font-weight: 700;
@@ -549,19 +546,36 @@ nav {
   font-size: 16px;
   color: var(--text-dim);
   line-height: 1.6;
+  flex-grow: 1;
 }
-.tier-badge {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  padding: 4px 10px;
-  border-radius: 4px;
-  background: rgba(166, 227, 161, 0.06);
-  color: var(--green);
-  border: 1px solid rgba(166, 227, 161, 0.15);
-  white-space: nowrap;
-  flex-shrink: 0;
+.tier-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  margin-top: 20px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+.tier-btn.active {
+  background: var(--green);
+  color: #11111b;
+}
+.tier-btn.active:hover {
+  background: #b5e8b1;
+  text-decoration: none;
+}
+.tier-btn.disabled {
+  background: var(--border);
+  color: var(--text-faint);
+  cursor: default;
+  pointer-events: none;
 }
 
 /* ============ SIGNUP ============ */
@@ -901,24 +915,28 @@ footer {
   <div class="section-body" style="margin-bottom: 8px;">Full source code available. Build it yourself, or let us help.</div>
   <div class="tiers-grid">
     <div class="tier">
-      <div class="tier-header"><div class="tier-name">DIY</div><div class="tier-badge">Free</div></div>
-      <div class="tier-title"><a href="https://github.com/wrathagom/lame-data" style="color:inherit;text-decoration:none;">Source Code</a></div>
+      <div class="tier-name">DIY</div>
+      <div class="tier-title">Source Code</div>
       <div class="tier-desc">Full code, firmware, and hardware specs. Build the whole thing yourself from off-the-shelf parts.</div>
+      <a href="https://github.com/wrathagom/lame-data" class="tier-btn active">Download Now</a>
     </div>
     <div class="tier">
-      <div class="tier-header"><div class="tier-name">Kit</div><div class="tier-badge">Coming Soon</div></div>
+      <div class="tier-name">Kit</div>
       <div class="tier-title">Sensor Pack</div>
       <div class="tier-desc">Pre-configured sensors, mounting hardware, and base station image. Plug in and go.</div>
+      <span class="tier-btn disabled">Coming Soon</span>
     </div>
     <div class="tier">
-      <div class="tier-header"><div class="tier-name">Cloud</div><div class="tier-badge">Coming Soon</div></div>
+      <div class="tier-name">Cloud</div>
       <div class="tier-title">Analytics</div>
       <div class="tier-desc">Hosted platform for longitudinal tracking, baseline analysis, and shareable reports.</div>
+      <span class="tier-btn disabled">Coming Soon</span>
     </div>
     <div class="tier">
-      <div class="tier-header"><div class="tier-name">Service</div><div class="tier-badge">Available</div></div>
+      <div class="tier-name">Service</div>
       <div class="tier-title">On-Site</div>
       <div class="tier-desc">We come to your barn, collect data, and deliver a full gait analysis report.</div>
+      <a href="#get-involved" class="tier-btn active">Get In Touch</a>
     </div>
   </div>
 </section>
