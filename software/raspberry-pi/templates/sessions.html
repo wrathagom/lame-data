@@ -14,10 +14,28 @@
             background: var(--pico-card-background-color);
             cursor: pointer;
             transition: transform 0.1s ease, box-shadow 0.1s ease;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
         }
         .session-card:hover {
             transform: translateX(4px);
             box-shadow: var(--pico-box-shadow);
+        }
+        .session-card.selected {
+            border-left-color: var(--pico-contrast);
+            background: color-mix(in srgb, var(--pico-primary) 10%, var(--pico-card-background-color));
+        }
+        .session-checkbox {
+            margin-top: 0.15rem;
+            flex-shrink: 0;
+            width: 1.1rem;
+            height: 1.1rem;
+            cursor: pointer;
+        }
+        .session-content {
+            flex: 1;
+            min-width: 0;
         }
         .session-location {
             font-weight: bold;
@@ -79,6 +97,29 @@
             text-align: center;
             margin-bottom: 2rem;
         }
+        .action-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--pico-card-background-color);
+            border-top: 2px solid var(--pico-primary);
+            padding: 0.75rem 1rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            z-index: 100;
+            box-shadow: 0 -2px 8px rgba(0,0,0,0.3);
+        }
+        .action-bar button {
+            margin: 0;
+            padding: 0.4rem 1rem;
+            font-size: 0.9rem;
+        }
+        .action-bar span {
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -101,14 +142,97 @@
         </footer>
     </main>
 
+    <div class="action-bar" id="actionBar" style="display:none">
+        <span id="selectedCount">0 selected</span>
+        <button onclick="downloadSelected()">Download Selected</button>
+        <button class="secondary" onclick="toggleSelectAll()" id="selectAllBtn">Select All</button>
+        <button class="secondary outline" onclick="clearSelection()">Clear</button>
+    </div>
+
     <script>
         let cloudConfigured = false;
+        const selected = new Set();
+        let allFilenames = [];
 
         function checkCloudStatus() {
             return fetch('/api/cloud_status')
                 .then(r => r.json())
                 .then(data => { cloudConfigured = data.configured; })
                 .catch(() => { cloudConfigured = false; });
+        }
+
+        function updateActionBar() {
+            const bar = document.getElementById('actionBar');
+            const count = selected.size;
+            bar.style.display = count > 0 ? 'flex' : 'none';
+            document.getElementById('selectedCount').textContent =
+                count + ' selected';
+            document.getElementById('selectAllBtn').textContent =
+                count === allFilenames.length ? 'Deselect All' : 'Select All';
+        }
+
+        function toggleSelect(filename, event) {
+            event.stopPropagation();
+            const card = document.querySelector(`[data-filename="${filename}"]`);
+            if (selected.has(filename)) {
+                selected.delete(filename);
+                card.classList.remove('selected');
+                card.querySelector('.session-checkbox').checked = false;
+            } else {
+                selected.add(filename);
+                card.classList.add('selected');
+                card.querySelector('.session-checkbox').checked = true;
+            }
+            updateActionBar();
+        }
+
+        function toggleSelectAll() {
+            if (selected.size === allFilenames.length) {
+                clearSelection();
+            } else {
+                allFilenames.forEach(f => {
+                    selected.add(f);
+                    const card = document.querySelector(`[data-filename="${f}"]`);
+                    if (card) {
+                        card.classList.add('selected');
+                        card.querySelector('.session-checkbox').checked = true;
+                    }
+                });
+                updateActionBar();
+            }
+        }
+
+        function clearSelection() {
+            selected.clear();
+            document.querySelectorAll('.session-card').forEach(card => {
+                card.classList.remove('selected');
+                card.querySelector('.session-checkbox').checked = false;
+            });
+            updateActionBar();
+        }
+
+        function downloadSelected() {
+            if (selected.size === 0) return;
+
+            if (selected.size === 1) {
+                window.location.href = '/api/download/' + [...selected][0];
+                return;
+            }
+
+            fetch('/api/download_batch', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({filenames: [...selected]})
+            })
+            .then(r => r.blob())
+            .then(blob => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'sessions.zip';
+                a.click();
+                URL.revokeObjectURL(url);
+            });
         }
 
         function loadSessions() {
@@ -123,6 +247,7 @@
                         return;
                     }
 
+                    allFilenames = sessions.map(s => s.filename);
                     let html = '';
                     sessions.forEach(session => {
                         const meta = session.metadata || {};
@@ -131,20 +256,23 @@
                         const safeFilename = session.filename.replace(/'/g, "\\'");
 
                         html += `
-                            <div class="session-card" onclick="viewSession('${safeFilename}')">
-                                <div class="session-location">${location}</div>
-                                <div class="session-notes">${meta.notes || 'No notes'}</div>
-                                <div class="session-meta">
-                                    ${date} &bull;
-                                    ${meta.samples ? Number(meta.samples).toLocaleString() : 'Unknown'} samples &bull;
-                                    ${(session.size / 1024).toFixed(1)} KB
-                                </div>
-                                ${cloudConfigured ? `
-                                <div class="session-actions" onclick="event.stopPropagation()">
-                                    <div id="upload-area-${safeFilename}">
-                                        <button onclick="showUploadForm('${safeFilename}')">Send to Cloud</button>
+                            <div class="session-card" data-filename="${session.filename}" onclick="viewSession('${safeFilename}')">
+                                <input type="checkbox" class="session-checkbox" onclick="toggleSelect('${safeFilename}', event)">
+                                <div class="session-content">
+                                    <div class="session-location">${location}</div>
+                                    <div class="session-notes">${meta.notes || 'No notes'}</div>
+                                    <div class="session-meta">
+                                        ${date} &bull;
+                                        ${meta.samples ? Number(meta.samples).toLocaleString() : 'Unknown'} samples &bull;
+                                        ${(session.size / 1024).toFixed(1)} KB
                                     </div>
-                                </div>` : ''}
+                                    ${cloudConfigured ? `
+                                    <div class="session-actions" onclick="event.stopPropagation()">
+                                        <div id="upload-area-${safeFilename}">
+                                            <button onclick="showUploadForm('${safeFilename}')">Send to Cloud</button>
+                                        </div>
+                                    </div>` : ''}
+                                </div>
                             </div>
                         `;
                     });

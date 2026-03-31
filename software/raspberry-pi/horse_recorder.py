@@ -9,6 +9,8 @@ import threading
 import json
 import csv
 import math
+import zipfile
+import io
 from pathlib import Path
 from collections import deque
 from dotenv import load_dotenv
@@ -495,6 +497,26 @@ def download_session(filename):
     if os.path.exists(filepath):
         return send_file(filepath, as_attachment=True)
     return jsonify({'error': 'File not found'}), 404
+
+
+@app.route('/api/download_batch', methods=['POST'])
+def download_batch():
+    """Download multiple session CSVs as a zip file"""
+    data = request.json
+    filenames = data.get('filenames', [])
+    if not filenames:
+        return jsonify({'error': 'No filenames provided'}), 400
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for filename in filenames:
+            filepath = os.path.join(DATA_DIR, filename)
+            if os.path.exists(filepath):
+                zf.write(filepath, filename)
+
+    buf.seek(0)
+    return send_file(buf, mimetype='application/zip',
+                     as_attachment=True, download_name='sessions.zip')
 
 
 @app.route('/api/segment/<filename>')

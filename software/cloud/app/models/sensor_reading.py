@@ -13,6 +13,6 @@ class SensorReading(BaseModel):
     accel_y: float
     accel_z: float
     magnitude: float
-    gyro_x: float
-    gyro_y: float
-    gyro_z: float
+    gyro_x: float = 0.0
+    gyro_y: float = 0.0
+    gyro_z: float = 0.0

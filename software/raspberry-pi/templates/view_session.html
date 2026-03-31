@@ -166,7 +166,7 @@
                 </div>
             </details>
 
-            <details>
+            <details id="gyroSection" style="display:none">
                 <summary>Show Gyroscope X/Y/Z</summary>
                 <div class="xyz-grid">
                     <div class="xyz-chart">
@@ -512,8 +512,10 @@
                 options: smallOptions
             });
 
-            // Gyroscope charts
-            if (firstDeviceData.gyro_x && firstDeviceData.gyro_x.length > 0) {
+            // Gyroscope charts - find first device with gyro data
+            const gyroDevice = deviceIds.map(id => data.devices[id]).find(d => d.gyro_x && d.gyro_x.length > 0);
+            if (gyroDevice) {
+                document.getElementById('gyroSection').style.display = '';
                 const gyroOptions = {
                     ...commonOptions,
                     scales: {
@@ -525,17 +527,17 @@
 
                 chartGyroX = new Chart(document.getElementById('chartGyroX'), {
                     type: 'line',
-                    data: { labels, datasets: [{ label: 'Gyro X', data: firstDeviceData.gyro_x, borderColor: 'rgb(255, 159, 64)', borderWidth: 1, pointRadius: 0 }] },
+                    data: { labels, datasets: [{ label: 'Gyro X', data: gyroDevice.gyro_x, borderColor: 'rgb(255, 159, 64)', borderWidth: 1, pointRadius: 0 }] },
                     options: gyroOptions
                 });
                 chartGyroY = new Chart(document.getElementById('chartGyroY'), {
                     type: 'line',
-                    data: { labels, datasets: [{ label: 'Gyro Y', data: firstDeviceData.gyro_y, borderColor: 'rgb(153, 102, 255)', borderWidth: 1, pointRadius: 0 }] },
+                    data: { labels, datasets: [{ label: 'Gyro Y', data: gyroDevice.gyro_y, borderColor: 'rgb(153, 102, 255)', borderWidth: 1, pointRadius: 0 }] },
                     options: gyroOptions
                 });
                 chartGyroZ = new Chart(document.getElementById('chartGyroZ'), {
                     type: 'line',
-                    data: { labels, datasets: [{ label: 'Gyro Z', data: firstDeviceData.gyro_z, borderColor: 'rgb(255, 205, 86)', borderWidth: 1, pointRadius: 0 }] },
+                    data: { labels, datasets: [{ label: 'Gyro Z', data: gyroDevice.gyro_z, borderColor: 'rgb(255, 205, 86)', borderWidth: 1, pointRadius: 0 }] },
                     options: gyroOptions
                 });
             }
@@ -647,6 +649,7 @@
 
             // Gyroscope charts (legacy single-device)
             if (data.gyro_x && data.gyro_x.length > 0) {
+                document.getElementById('gyroSection').style.display = '';
                 const gyroOptions = {
                     ...commonOptions,
                     scales: {
