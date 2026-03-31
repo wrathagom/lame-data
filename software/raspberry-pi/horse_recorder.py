@@ -238,8 +238,9 @@ def sessions_page():
     return render_template('sessions.html')
 
 @app.route('/config')
-def config_page():
-    return render_template('config.html')
+@app.route('/settings')
+def settings_page():
+    return render_template('settings.html')
 
 @app.route('/view/<filename>')
 def view_session(filename):

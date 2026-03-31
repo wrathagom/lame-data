@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
-    <title>Device Config - Lame Data</title>
+    <title>Settings - Lame Data</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="/static/css/pico.min.css">
@@ -48,7 +48,7 @@
 <body>
     <main class="container">
         <header>
-            <h1>Device Configuration</h1>
+            <h1>Settings</h1>
             <nav>
                 <ul>
                     <li><a href="/">Back to Recorder</a></li>
@@ -58,10 +58,33 @@
         </header>
 
         <article>
+            <h2>Device Configuration</h2>
             <p>Assign each sensor to a position on the horse. Sensors appear here automatically when they connect.</p>
             <div id="deviceGrid" class="device-grid"></div>
             <button onclick="saveDeviceConfig()">Save Configuration</button>
         </article>
+
+        <article>
+            <h2>System</h2>
+            <button class="outline" onclick="confirmUpgrade()" style="width:100%; margin-bottom:1rem;">Update Software</button>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                <button class="outline" onclick="confirmReboot()">Reboot Pi</button>
+                <button class="outline" style="--pico-background-color:#C44638;--pico-border-color:#C44638;" onclick="confirmShutdown()">Shutdown Pi</button>
+            </div>
+        </article>
+
+        <dialog id="systemDialog">
+            <article>
+                <h3 id="dialogTitle">Confirm</h3>
+                <p id="dialogMessage"></p>
+                <footer>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                        <button class="outline" onclick="document.getElementById('systemDialog').close()">Cancel</button>
+                        <button style="--pico-background-color:#C44638;--pico-border-color:#C44638;" id="dialogConfirm">Confirm</button>
+                    </div>
+                </footer>
+            </article>
+        </dialog>
 
         <footer>
             <small>Lame Data - Open Source Horse Biomechanics</small>
@@ -187,6 +210,62 @@
                         }
                     }
                 });
+        }
+
+        function confirmUpgrade() {
+            showDialog('Update Software', 'This will pull the latest code, install dependencies, and restart the service.', 'upgrade');
+        }
+        function confirmReboot() {
+            showDialog('Reboot Pi', 'The Pi will reboot. The web UI will be unavailable for about a minute.', 'reboot');
+        }
+        function confirmShutdown() {
+            showDialog('Shutdown Pi', 'The Pi will shut down. You will need physical access to power it back on.', 'shutdown');
+        }
+
+        function showDialog(title, message, action) {
+            document.getElementById('dialogTitle').textContent = title;
+            document.getElementById('dialogMessage').textContent = message;
+            document.getElementById('dialogConfirm').onclick = () => executeAction(action);
+            document.getElementById('systemDialog').showModal();
+        }
+
+        function executeAction(action) {
+            document.getElementById('systemDialog').close();
+
+            if (action === 'upgrade') {
+                fetch('/api/upgrade', { method: 'POST' })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Update complete. Service is restarting...');
+                            waitForReconnect();
+                        } else {
+                            const err = data.steps.find(s => !s.success);
+                            alert('Update failed at: ' + err.step + '\n' + err.error);
+                        }
+                    })
+                    .catch(() => alert('Update failed.'));
+                return;
+            }
+
+            fetch('/api/shutdown', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({action})
+            }).then(r => r.json()).then(data => {
+                if (data.success) {
+                    alert(action === 'reboot' ? 'Rebooting...' : 'Shutting down...');
+                    if (action === 'reboot') waitForReconnect();
+                }
+            });
+        }
+
+        function waitForReconnect() {
+            const poll = setInterval(() => {
+                fetch('/api/status')
+                    .then(r => { if (r.ok) { clearInterval(poll); location.reload(); } })
+                    .catch(() => {});
+            }, 2000);
         }
 
         loadDeviceConfig().then(() => {
