@@ -97,6 +97,84 @@
         .pos-girth    { grid-column: 2; }
         .pos-lh       { grid-column: 1; }
         .pos-rh       { grid-column: 3; }
+
+        /* Protocols */
+        #protocolRunner h4 {
+            margin: 0 0 0.75rem 0;
+        }
+        .favorite-buttons {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
+        }
+        .favorite-buttons.two {
+            grid-template-columns: 1fr 1fr;
+        }
+        .favorite-buttons button {
+            margin: 0;
+            padding: 1rem 0.75rem;
+            font-size: 1rem;
+            font-weight: bold;
+            white-space: normal;
+        }
+        .manage-link {
+            display: block;
+            text-align: right;
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+        }
+        .no-favorites {
+            color: var(--pico-muted-color);
+            font-size: 0.9rem;
+        }
+        .run-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 0.5rem;
+        }
+        .run-progress {
+            font-size: 0.85rem;
+            color: var(--pico-muted-color);
+        }
+        .run-step-instruction {
+            font-size: 1.3rem;
+            font-weight: bold;
+            text-align: center;
+            padding: 1rem 0.5rem;
+            margin: 0.5rem 0;
+            border-radius: var(--pico-border-radius);
+            background: color-mix(in srgb, var(--pico-primary) 10%, var(--pico-card-background-color));
+        }
+        .run-iteration {
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--pico-muted-color);
+            margin-bottom: 0.5rem;
+        }
+        .run-primary {
+            width: 100%;
+            margin: 0.25rem 0;
+        }
+        .run-secondary {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        .run-secondary button {
+            margin: 0;
+            padding: 0.5rem 0.5rem;
+            font-size: 0.9rem;
+        }
+        .run-cancel {
+            width: 100%;
+            margin-top: 0.5rem;
+        }
+        .manual-muted {
+            opacity: 0.4;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
@@ -106,6 +184,7 @@
             <div class="nav-bar">
                 <a href="/" class="active">Recorder</a>
                 <a href="/sessions">Sessions</a>
+                <a href="/protocols">Protocols</a>
                 <a href="/settings">Settings</a>
             </div>
         </header>
@@ -143,7 +222,32 @@
             </div>
         </article>
 
-        <article>
+        <article id="protocolRunner" data-mode="idle">
+            <!-- Idle mode: favorite quick-access buttons -->
+            <div id="runnerIdle">
+                <h4>Protocols</h4>
+                <div id="favoriteButtons" class="favorite-buttons"></div>
+                <a href="/protocols" class="manage-link">Manage protocols &rarr;</a>
+            </div>
+            <!-- Running mode: step-by-step -->
+            <div id="runnerActive" style="display:none;">
+                <div class="run-header">
+                    <strong id="runProtocolName"></strong>
+                    <span class="run-progress" id="runProgress"></span>
+                </div>
+                <div class="run-step-instruction" id="runInstruction"></div>
+                <div class="run-iteration" id="runIteration"></div>
+                <button class="run-primary" id="runPrimaryBtn" onclick="onPrimaryClick()">Start Step</button>
+                <div class="run-secondary">
+                    <button class="secondary" id="runRepeatBtn" onclick="onRepeatClick()" disabled>Repeat</button>
+                    <button class="secondary" id="runSkipBtn" onclick="onSkipClick()">Skip</button>
+                    <button class="secondary" id="runNextBtn" onclick="onNextClick()" disabled>Next</button>
+                </div>
+                <button class="run-cancel secondary outline" onclick="onCancelClick()">Cancel Protocol</button>
+            </div>
+        </article>
+
+        <article id="recordingArticle">
             <div id="status" class="status-indicator status-stopped">NOT RECORDING</div>
 
             <div id="metrics" style="display:none;">
@@ -164,15 +268,17 @@
                 </div>
             </div>
 
-            <label for="location" style="margin-top:1rem;">Session Location</label>
-            <input type="text" id="location" placeholder="e.g., Indoor arena, outdoor field" value="field">
+            <div id="manualControls">
+                <label for="location" style="margin-top:1rem;">Session Location</label>
+                <input type="text" id="location" placeholder="e.g., Indoor arena, outdoor field" value="field">
 
-            <label for="notes">Notes</label>
-            <textarea id="notes" rows="2" placeholder="e.g., Walk in hand, Trot in hand, Lunge left, etc."></textarea>
+                <label for="notes">Notes</label>
+                <textarea id="notes" rows="2" placeholder="e.g., Walk in hand, Trot in hand, Lunge left, etc."></textarea>
 
-            <div class="btn-group">
-                <button id="startBtn" onclick="startRecording()">Start Recording</button>
-                <button id="stopBtn" class="btn-stop" onclick="stopRecording()" disabled>Stop Recording</button>
+                <div class="btn-group">
+                    <button id="startBtn" onclick="startRecording()">Start Recording</button>
+                    <button id="stopBtn" class="btn-stop" onclick="stopRecording()" disabled>Stop Recording</button>
+                </div>
             </div>
         </article>
 
@@ -265,6 +371,7 @@
                     document.getElementById('notes').disabled = isRecording;
 
                     updateHorseDiagram(data.device_status || {});
+                    renderRunner();
                 });
         }
 
@@ -302,11 +409,198 @@
                 });
         }
 
-        // Initialize
-        loadDeviceConfig().then(() => {
+        // ---- Protocols ----
+        let allProtocols = [];
+        let activeRun = null; // {protocol, location, stepIndex, iteration, stepHasRecording, stepsRecorded}
+
+        async function loadProtocols() {
+            try {
+                const r = await fetch('/api/protocols');
+                const data = await r.json();
+                allProtocols = data.protocols || [];
+            } catch (e) {
+                allProtocols = [];
+            }
+            renderFavorites();
+        }
+
+        function renderFavorites() {
+            const container = document.getElementById('favoriteButtons');
+            const favs = allProtocols.filter(p => p.is_favorite).slice(0, 2);
+            if (favs.length === 0) {
+                container.innerHTML = '<div class="no-favorites">No favorite protocols yet. Favorite one on the Protocols page to pin it here.</div>';
+                container.classList.remove('two');
+                return;
+            }
+            container.classList.toggle('two', favs.length === 2);
+            container.innerHTML = favs.map(p =>
+                `<button onclick="startProtocolRun('${p.id}')">${escapeAttr(p.name)}</button>`
+            ).join('');
+        }
+
+        function escapeAttr(s) {
+            return (s || '').replace(/[&<>"']/g, c =>
+                ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+
+        function startProtocolRun(protoId) {
+            const proto = allProtocols.find(p => p.id === protoId);
+            if (!proto) return;
+            if (!proto.steps || proto.steps.length === 0) {
+                alert('This protocol has no steps.');
+                return;
+            }
+            const lastLoc = localStorage.getItem('lastProtocolLocation') || document.getElementById('location').value || 'field';
+            const location = prompt(`Location for "${proto.name}":`, lastLoc);
+            if (location === null) return;
+            const loc = location.trim() || lastLoc;
+            localStorage.setItem('lastProtocolLocation', loc);
+
+            activeRun = {
+                protocol: proto,
+                location: loc,
+                stepIndex: 0,
+                iteration: 1,
+                stepHasRecording: false,
+                stepsRecorded: 0
+            };
+            document.getElementById('protocolRunner').dataset.mode = 'running';
+            document.getElementById('runnerIdle').style.display = 'none';
+            document.getElementById('runnerActive').style.display = 'block';
+            document.getElementById('manualControls').classList.add('manual-muted');
+            renderRunner();
+        }
+
+        function endProtocolRun(summary) {
+            activeRun = null;
+            document.getElementById('protocolRunner').dataset.mode = 'idle';
+            document.getElementById('runnerIdle').style.display = 'block';
+            document.getElementById('runnerActive').style.display = 'none';
+            document.getElementById('manualControls').classList.remove('manual-muted');
+            if (summary) alert(summary);
+        }
+
+        function ordinal(n) {
+            const s = ['th', 'st', 'nd', 'rd'], v = n % 100;
+            return n + (s[(v - 20) % 10] || s[v] || s[0]);
+        }
+
+        function renderRunner() {
+            if (!activeRun) return;
+            const { protocol, stepIndex, iteration, stepHasRecording } = activeRun;
+            const step = protocol.steps[stepIndex];
+            if (!step) return;
+
+            document.getElementById('runProtocolName').textContent = protocol.name;
+            document.getElementById('runProgress').textContent = `Step ${stepIndex + 1} of ${protocol.steps.length}`;
+            document.getElementById('runInstruction').textContent = step.instruction;
+            document.getElementById('runIteration').textContent =
+                iteration > 1 ? `${ordinal(iteration)} iteration` : '';
+
+            const primary = document.getElementById('runPrimaryBtn');
+            const repeatBtn = document.getElementById('runRepeatBtn');
+            const skipBtn = document.getElementById('runSkipBtn');
+            const nextBtn = document.getElementById('runNextBtn');
+
+            if (isRecording) {
+                primary.textContent = 'End Step';
+                primary.disabled = false;
+                repeatBtn.disabled = true;
+                skipBtn.disabled = true;
+                nextBtn.disabled = true;
+            } else if (stepHasRecording) {
+                // Post-recording for this iteration: require Repeat / Next
+                primary.textContent = 'Start Step';
+                primary.disabled = true;
+                repeatBtn.disabled = false;
+                skipBtn.disabled = true;
+                nextBtn.disabled = false;
+            } else {
+                // Fresh or post-Repeat: ready to start
+                primary.textContent = 'Start Step';
+                primary.disabled = false;
+                repeatBtn.disabled = true;
+                skipBtn.disabled = false;
+                nextBtn.disabled = false; // allow skipping forward even without recording
+            }
+        }
+
+        async function onPrimaryClick() {
+            if (!activeRun) return;
+            if (isRecording) {
+                // End the current step's recording
+                const r = await fetch('/api/stop', { method: 'POST' });
+                const data = await r.json();
+                if (data.success) {
+                    activeRun.stepHasRecording = true;
+                    activeRun.stepsRecorded += 1;
+                    updateStatus();
+                }
+            } else {
+                // Start recording this step
+                const step = activeRun.protocol.steps[activeRun.stepIndex];
+                const body = {
+                    location: activeRun.location,
+                    protocol_name: activeRun.protocol.name,
+                    step_instruction: step.instruction,
+                    iteration: activeRun.iteration
+                };
+                const r = await fetch('/api/start', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(body)
+                });
+                const data = await r.json();
+                if (data.success) updateStatus();
+            }
+        }
+
+        function onRepeatClick() {
+            if (!activeRun || isRecording) return;
+            activeRun.iteration += 1;
+            activeRun.stepHasRecording = false;
+            renderRunner();
+        }
+
+        function advanceStep() {
+            activeRun.stepIndex += 1;
+            activeRun.iteration = 1;
+            activeRun.stepHasRecording = false;
+            if (activeRun.stepIndex >= activeRun.protocol.steps.length) {
+                const count = activeRun.stepsRecorded;
+                endProtocolRun(`Protocol complete — ${count} recording${count === 1 ? '' : 's'} saved.`);
+                return;
+            }
+            renderRunner();
+        }
+
+        function onSkipClick() {
+            if (!activeRun || isRecording || activeRun.stepHasRecording) return;
+            advanceStep();
+        }
+
+        function onNextClick() {
+            if (!activeRun || isRecording) return;
+            advanceStep();
+        }
+
+        async function onCancelClick() {
+            if (!activeRun) return;
+            if (!confirm('Cancel this protocol run?')) return;
+            if (isRecording) {
+                await fetch('/api/stop', { method: 'POST' });
+            }
+            endProtocolRun(null);
             updateStatus();
-            setInterval(updateStatus, 1000);
-        });
+        }
+
+        // Initialize
+        loadDeviceConfig()
+            .then(loadProtocols)
+            .then(() => {
+                updateStatus();
+                setInterval(updateStatus, 1000);
+            });
     </script>
 </body>
 </html>

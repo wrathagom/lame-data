@@ -11,6 +11,7 @@ import csv
 import math
 import zipfile
 import io
+import uuid
 from pathlib import Path
 from collections import deque
 from dotenv import load_dotenv
@@ -30,6 +31,7 @@ UDP_PORT = int(os.getenv('UDP_PORT', 8888))
 WEB_PORT = int(os.getenv('WEB_PORT', 5000))
 DATA_DIR = os.getenv('DATA_DIR', str(SCRIPT_DIR / 'data'))
 DEVICE_CONFIG_FILE = SCRIPT_DIR / 'device_config.json'
+PROTOCOLS_FILE = SCRIPT_DIR / 'protocols.json'
 CLOUD_URL = os.getenv('CLOUD_URL', '').rstrip('/')
 CLOUD_API_KEY = os.getenv('CLOUD_API_KEY', '')
 
@@ -231,6 +233,63 @@ def save_device_config(config):
         json.dump(config, f, indent=2)
 
 
+DEFAULT_PROTOCOLS = {
+    "protocols": [
+        {
+            "id": "proto-standard-lameness",
+            "name": "Standard Lameness Exam",
+            "is_favorite": True,
+            "steps": [
+                {"id": "s1", "instruction": "Walk in hand down and back on soft ground"},
+                {"id": "s2", "instruction": "Trot in hand down and back on soft ground"},
+                {"id": "s3", "instruction": "Lunge to the left on soft ground"},
+                {"id": "s4", "instruction": "Lunge to the right on soft ground"},
+                {"id": "s5", "instruction": "Walk in hand down and back on hard ground"},
+                {"id": "s6", "instruction": "Trot in hand down and back on hard ground"},
+                {"id": "s7", "instruction": "Lunge to the left on hard ground"},
+                {"id": "s8", "instruction": "Lunge to the right on hard ground"}
+            ]
+        }
+    ]
+}
+
+
+def load_protocols():
+    """Load protocols from JSON file, seeding defaults on first run."""
+    if not PROTOCOLS_FILE.exists():
+        save_protocols(DEFAULT_PROTOCOLS)
+        return json.loads(json.dumps(DEFAULT_PROTOCOLS))
+    with open(PROTOCOLS_FILE, 'r') as f:
+        return json.load(f)
+
+
+def save_protocols(data):
+    """Save protocols to JSON file."""
+    with open(PROTOCOLS_FILE, 'w') as f:
+        json.dump(data, f, indent=2)
+
+
+def _find_protocol(data, protocol_id):
+    for proto in data.get('protocols', []):
+        if proto.get('id') == protocol_id:
+            return proto
+    return None
+
+
+def _normalize_steps(steps):
+    """Ensure each step has an id and instruction; strip extra fields."""
+    normalized = []
+    for step in steps or []:
+        instruction = (step.get('instruction') or '').strip()
+        if not instruction:
+            continue
+        normalized.append({
+            'id': step.get('id') or f"s-{uuid.uuid4().hex[:8]}",
+            'instruction': instruction
+        })
+    return normalized
+
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -243,6 +302,10 @@ def sessions_page():
 @app.route('/settings')
 def settings_page():
     return render_template('settings.html')
+
+@app.route('/protocols')
+def protocols_page():
+    return render_template('protocols.html')
 
 @app.route('/view/<filename>')
 def view_session(filename):
@@ -291,6 +354,92 @@ def update_device_config():
     return jsonify({'success': True})
 
 
+FAVORITE_LIMIT = 2
+
+
+@app.route('/api/protocols')
+def get_protocols():
+    """List all protocols."""
+    return jsonify(load_protocols())
+
+
+@app.route('/api/protocols', methods=['POST'])
+def create_protocol():
+    """Create a new protocol. Body: {name, steps: [{instruction}]}."""
+    body = request.json or {}
+    name = (body.get('name') or '').strip()
+    if not name:
+        return jsonify({'error': 'name is required'}), 400
+
+    data = load_protocols()
+    new_proto = {
+        'id': f"proto-{uuid.uuid4().hex[:10]}",
+        'name': name,
+        'is_favorite': False,
+        'steps': _normalize_steps(body.get('steps', []))
+    }
+    data.setdefault('protocols', []).append(new_proto)
+    save_protocols(data)
+    return jsonify(new_proto)
+
+
+@app.route('/api/protocols/<protocol_id>', methods=['PUT'])
+def update_protocol(protocol_id):
+    """Replace name/steps for a protocol. Favorite flag is handled separately."""
+    body = request.json or {}
+    data = load_protocols()
+    proto = _find_protocol(data, protocol_id)
+    if not proto:
+        return jsonify({'error': 'not found'}), 404
+
+    if 'name' in body:
+        name = (body.get('name') or '').strip()
+        if not name:
+            return jsonify({'error': 'name cannot be empty'}), 400
+        proto['name'] = name
+    if 'steps' in body:
+        proto['steps'] = _normalize_steps(body.get('steps', []))
+
+    save_protocols(data)
+    return jsonify(proto)
+
+
+@app.route('/api/protocols/<protocol_id>', methods=['DELETE'])
+def delete_protocol(protocol_id):
+    """Remove a protocol."""
+    data = load_protocols()
+    before = len(data.get('protocols', []))
+    data['protocols'] = [p for p in data.get('protocols', []) if p.get('id') != protocol_id]
+    if len(data['protocols']) == before:
+        return jsonify({'error': 'not found'}), 404
+    save_protocols(data)
+    return jsonify({'success': True})
+
+
+@app.route('/api/protocols/<protocol_id>/favorite', methods=['POST'])
+def set_protocol_favorite(protocol_id):
+    """Toggle favorite flag. Enforces a cap of FAVORITE_LIMIT favorites."""
+    body = request.json or {}
+    is_favorite = bool(body.get('is_favorite'))
+
+    data = load_protocols()
+    proto = _find_protocol(data, protocol_id)
+    if not proto:
+        return jsonify({'error': 'not found'}), 404
+
+    if is_favorite and not proto.get('is_favorite'):
+        current_favs = [p for p in data.get('protocols', []) if p.get('is_favorite')]
+        if len(current_favs) >= FAVORITE_LIMIT:
+            return jsonify({
+                'error': f'at most {FAVORITE_LIMIT} favorites allowed',
+                'current_favorites': [{'id': p['id'], 'name': p['name']} for p in current_favs]
+            }), 409
+
+    proto['is_favorite'] = is_favorite
+    save_protocols(data)
+    return jsonify(proto)
+
+
 @app.route('/api/start', methods=['POST'])
 def start_recording():
     if recording_state['is_recording']:
@@ -298,7 +447,14 @@ def start_recording():
 
     data = request.json
     location = data.get('location', 'unknown')
-    notes = data.get('notes', '')
+    protocol_name = (data.get('protocol_name') or '').strip()
+    step_instruction = (data.get('step_instruction') or '').strip()
+    try:
+        iteration = int(data.get('iteration') or 1)
+    except (TypeError, ValueError):
+        iteration = 1
+    # When running a protocol, the step instruction is authoritative for notes.
+    notes = step_instruction if step_instruction else data.get('notes', '')
 
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = os.path.join(DATA_DIR, f"session_{timestamp}.csv")
@@ -315,8 +471,11 @@ def start_recording():
         f"# Notes: {notes}",
         f"# Start Time: {datetime.datetime.now().isoformat()}",
         f"# Device Config: {json.dumps(device_config['devices'])}",
-        "timestamp,device_id,millis_time,accel_x,accel_y,accel_z,gyro_x,gyro_y,gyro_z"
     ]
+    if protocol_name:
+        headers.append(f"# Protocol: {protocol_name}")
+        headers.append(f"# Step Iteration: {iteration}")
+    headers.append("timestamp,device_id,millis_time,accel_x,accel_y,accel_z,gyro_x,gyro_y,gyro_z")
 
     recorder.start(headers)
 

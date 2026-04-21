@@ -5,8 +5,12 @@ __pycache__/
 *.so
 .Python
 venv/
+.venv/
 ENV/
 .env
+
+# Pytest
+.pytest_cache/
 
 # Jupyter
 .ipynb_checkpoints/

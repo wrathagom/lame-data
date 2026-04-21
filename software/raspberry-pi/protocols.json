@@ -1,0 +1,43 @@
+{
+  "protocols": [
+    {
+      "id": "proto-standard-lameness",
+      "name": "Standard Lameness Exam",
+      "is_favorite": true,
+      "steps": [
+        {
+          "id": "s1",
+          "instruction": "Walk in hand down and back on soft ground"
+        },
+        {
+          "id": "s2",
+          "instruction": "Trot in hand down and back on soft ground"
+        },
+        {
+          "id": "s3",
+          "instruction": "Lunge to the left on soft ground"
+        },
+        {
+          "id": "s4",
+          "instruction": "Lunge to the right on soft ground"
+        },
+        {
+          "id": "s5",
+          "instruction": "Walk in hand down and back on hard ground"
+        },
+        {
+          "id": "s6",
+          "instruction": "Trot in hand down and back on hard ground"
+        },
+        {
+          "id": "s7",
+          "instruction": "Lunge to the left on hard ground"
+        },
+        {
+          "id": "s8",
+          "instruction": "Lunge to the right on hard ground"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<script>(function(){var t=localStorage.getItem('theme')||'catppuccin-mocha';document.documentElement.setAttribute('data-theme-palette',t);if(['catppuccin-latte'].includes(t))document.documentElement.setAttribute('data-theme','light');})()</script>
+<head>
+    <title>Protocols - Lame Data</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/static/css/pico.min.css">
+    <link rel="stylesheet" href="/static/css/theme.css">
+    <style>
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .protocol-card {
+            padding: 1rem;
+            margin: 0.75rem 0;
+            border-radius: var(--pico-border-radius);
+            border-left: 4px solid var(--pico-primary);
+            background: var(--pico-card-background-color);
+        }
+        .protocol-card.is-favorite {
+            border-left-color: var(--ctp-yellow, var(--pico-primary));
+        }
+        .protocol-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+        .protocol-header input[type="text"] {
+            flex: 1;
+            margin: 0;
+        }
+        .fav-btn {
+            background: none;
+            border: none;
+            font-size: 1.4rem;
+            cursor: pointer;
+            padding: 0.25rem 0.5rem;
+            margin: 0;
+            color: var(--pico-muted-color);
+        }
+        .fav-btn.active {
+            color: var(--ctp-yellow, gold);
+        }
+        .step-row {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            margin-bottom: 0.4rem;
+        }
+        .step-row input[type="text"] {
+            flex: 1;
+            margin: 0;
+        }
+        .step-row button {
+            margin: 0;
+            padding: 0.25rem 0.55rem;
+            font-size: 0.85rem;
+            min-width: 2.2rem;
+        }
+        .protocol-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+        .protocol-actions button {
+            margin: 0;
+            padding: 0.35rem 0.9rem;
+            font-size: 0.85rem;
+        }
+        .add-step-btn {
+            margin-top: 0.25rem;
+            padding: 0.3rem 0.75rem;
+            font-size: 0.85rem;
+        }
+        .new-protocol-btn {
+            margin-bottom: 1rem;
+        }
+        .no-protocols {
+            text-align: center;
+            padding: 2rem;
+            color: var(--pico-muted-color);
+        }
+        .toast {
+            position: fixed;
+            bottom: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--pico-card-background-color);
+            border: 1px solid var(--pico-primary);
+            padding: 0.6rem 1rem;
+            border-radius: var(--pico-border-radius);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            z-index: 200;
+        }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <header>
+            <h1>Protocols</h1>
+            <div class="nav-bar">
+                <a href="/">Recorder</a>
+                <a href="/sessions">Sessions</a>
+                <a href="/protocols" class="active">Protocols</a>
+                <a href="/settings">Settings</a>
+            </div>
+        </header>
+
+        <article>
+            <button class="new-protocol-btn" onclick="createProtocol()">+ New Protocol</button>
+            <div id="protocolList" aria-busy="true">Loading protocols...</div>
+        </article>
+
+        <footer>
+            <small>Favorite up to 2 protocols to pin them to the recorder screen.</small>
+        </footer>
+    </main>
+
+    <script>
+        let protocols = [];
+
+        function escapeHtml(s) {
+            return (s || '').replace(/[&<>"']/g, c =>
+                ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+
+        function toast(msg) {
+            const el = document.createElement('div');
+            el.className = 'toast';
+            el.textContent = msg;
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 3000);
+        }
+
+        async function loadProtocols() {
+            const response = await fetch('/api/protocols');
+            const data = await response.json();
+            protocols = data.protocols || [];
+            render();
+        }
+
+        function render() {
+            const container = document.getElementById('protocolList');
+            container.removeAttribute('aria-busy');
+
+            if (protocols.length === 0) {
+                container.innerHTML = '<div class="no-protocols">No protocols yet. Click "+ New Protocol" to create one.</div>';
+                return;
+            }
+
+            container.innerHTML = protocols.map(renderCard).join('');
+        }
+
+        function renderCard(proto) {
+            const stepsHtml = (proto.steps || []).map((step, idx) => `
+                <div class="step-row">
+                    <button class="secondary outline" onclick="moveStep('${proto.id}', ${idx}, -1)" ${idx === 0 ? 'disabled' : ''} title="Move up">&uarr;</button>
+                    <button class="secondary outline" onclick="moveStep('${proto.id}', ${idx}, 1)" ${idx === proto.steps.length - 1 ? 'disabled' : ''} title="Move down">&darr;</button>
+                    <input type="text" value="${escapeHtml(step.instruction)}"
+                           data-proto="${proto.id}" data-step="${step.id}" data-field="instruction">
+                    <button class="secondary" onclick="removeStep('${proto.id}', '${step.id}')" title="Remove step">&times;</button>
+                </div>
+            `).join('');
+
+            return `
+                <div class="protocol-card ${proto.is_favorite ? 'is-favorite' : ''}" data-proto-id="${proto.id}">
+                    <div class="protocol-header">
+                        <button class="fav-btn ${proto.is_favorite ? 'active' : ''}"
+                                onclick="toggleFavorite('${proto.id}')"
+                                title="${proto.is_favorite ? 'Unfavorite' : 'Favorite (pins to recorder)'}">
+                            ${proto.is_favorite ? '&#9733;' : '&#9734;'}
+                        </button>
+                        <input type="text" value="${escapeHtml(proto.name)}"
+                               data-proto="${proto.id}" data-field="name" placeholder="Protocol name">
+                    </div>
+                    <div class="steps-list">
+                        ${stepsHtml}
+                    </div>
+                    <button class="add-step-btn secondary outline" onclick="addStep('${proto.id}')">+ Add Step</button>
+                    <div class="protocol-actions">
+                        <button class="secondary" onclick="deleteProtocol('${proto.id}')">Delete</button>
+                        <button onclick="saveProtocol('${proto.id}')">Save</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function collectEdits(protoId) {
+            const card = document.querySelector(`[data-proto-id="${protoId}"]`);
+            if (!card) return null;
+            const name = card.querySelector(`input[data-field="name"]`).value.trim();
+            const stepInputs = card.querySelectorAll(`input[data-field="instruction"]`);
+            const steps = Array.from(stepInputs).map(inp => ({
+                id: inp.dataset.step,
+                instruction: inp.value.trim()
+            })).filter(s => s.instruction);
+            return { name, steps };
+        }
+
+        function syncLocalFromDom(protoId) {
+            const edits = collectEdits(protoId);
+            if (!edits) return;
+            const proto = protocols.find(p => p.id === protoId);
+            if (!proto) return;
+            proto.name = edits.name || proto.name;
+            const byId = Object.fromEntries((proto.steps || []).map(s => [s.id, s]));
+            proto.steps = edits.steps.map(s => byId[s.id] ? { ...byId[s.id], instruction: s.instruction } : s);
+        }
+
+        async function createProtocol() {
+            const name = prompt('Name for new protocol:');
+            if (!name) return;
+            const response = await fetch('/api/protocols', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ name: name.trim(), steps: [] })
+            });
+            if (!response.ok) {
+                const err = await response.json().catch(() => ({}));
+                toast(err.error || 'Failed to create protocol');
+                return;
+            }
+            await loadProtocols();
+        }
+
+        async function saveProtocol(protoId) {
+            const edits = collectEdits(protoId);
+            if (!edits) return;
+            if (!edits.name) {
+                toast('Name cannot be empty');
+                return;
+            }
+            const response = await fetch(`/api/protocols/${protoId}`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(edits)
+            });
+            if (!response.ok) {
+                const err = await response.json().catch(() => ({}));
+                toast(err.error || 'Save failed');
+                return;
+            }
+            toast('Saved');
+            await loadProtocols();
+        }
+
+        async function deleteProtocol(protoId) {
+            const proto = protocols.find(p => p.id === protoId);
+            if (!confirm(`Delete protocol "${proto?.name || protoId}"?`)) return;
+            const response = await fetch(`/api/protocols/${protoId}`, { method: 'DELETE' });
+            if (!response.ok) {
+                toast('Delete failed');
+                return;
+            }
+            await loadProtocols();
+        }
+
+        async function toggleFavorite(protoId) {
+            const proto = protocols.find(p => p.id === protoId);
+            if (!proto) return;
+            const next = !proto.is_favorite;
+            const response = await fetch(`/api/protocols/${protoId}/favorite`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ is_favorite: next })
+            });
+            if (response.status === 409) {
+                const err = await response.json();
+                const names = (err.current_favorites || []).map(p => p.name).join(', ');
+                toast(`Already have 2 favorites (${names}). Unfavorite one first.`);
+                return;
+            }
+            if (!response.ok) {
+                toast('Toggle failed');
+                return;
+            }
+            await loadProtocols();
+        }
+
+        function addStep(protoId) {
+            syncLocalFromDom(protoId);
+            const proto = protocols.find(p => p.id === protoId);
+            if (!proto) return;
+            proto.steps = proto.steps || [];
+            proto.steps.push({
+                id: 's-new-' + Math.random().toString(36).slice(2, 8),
+                instruction: ''
+            });
+            render();
+        }
+
+        function removeStep(protoId, stepId) {
+            syncLocalFromDom(protoId);
+            const proto = protocols.find(p => p.id === protoId);
+            if (!proto) return;
+            proto.steps = (proto.steps || []).filter(s => s.id !== stepId);
+            render();
+        }
+
+        function moveStep(protoId, idx, delta) {
+            syncLocalFromDom(protoId);
+            const proto = protocols.find(p => p.id === protoId);
+            if (!proto) return;
+            const steps = proto.steps || [];
+            const newIdx = idx + delta;
+            if (newIdx < 0 || newIdx >= steps.length) return;
+            [steps[idx], steps[newIdx]] = [steps[newIdx], steps[idx]];
+            render();
+        }
+
+        loadProtocols();
+    </script>
+</body>
+</html>
