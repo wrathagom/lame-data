@@ -268,7 +268,11 @@
             </div>
 
             <div id="manualControls">
-                <label for="location" style="margin-top:1rem;">Session Location</label>
+                <label for="horse" style="margin-top:1rem;">Horse</label>
+                <input type="text" id="horse" list="horseDatalist" placeholder="e.g., Spicy" autocomplete="off">
+                <datalist id="horseDatalist"></datalist>
+
+                <label for="location">Session Location</label>
                 <input type="text" id="location" placeholder="e.g., Indoor arena, outdoor field" value="field">
 
                 <label for="notes">Notes</label>
@@ -286,6 +290,22 @@
         </footer>
 
     </main>
+
+    <dialog id="protocolStartDialog">
+        <article>
+            <h3 id="protocolStartTitle">Start Protocol</h3>
+            <label for="dlgHorse">Horse</label>
+            <input type="text" id="dlgHorse" list="horseDatalist" placeholder="e.g., Spicy" autocomplete="off">
+            <label for="dlgLocation">Location</label>
+            <input type="text" id="dlgLocation" placeholder="e.g., outdoor field">
+            <footer>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                    <button class="secondary outline" onclick="cancelProtocolStart()">Cancel</button>
+                    <button onclick="confirmProtocolStart()">Start</button>
+                </div>
+            </footer>
+        </article>
+    </dialog>
 
     <script>
         let isRecording = false;
@@ -366,6 +386,7 @@
 
                     document.getElementById('startBtn').disabled = isRecording;
                     document.getElementById('stopBtn').disabled = !isRecording;
+                    document.getElementById('horse').disabled = isRecording;
                     document.getElementById('location').disabled = isRecording;
                     document.getElementById('notes').disabled = isRecording;
 
@@ -375,17 +396,24 @@
         }
 
         function startRecording() {
+            const horse = document.getElementById('horse').value.trim();
             const location = document.getElementById('location').value;
             const notes = document.getElementById('notes').value;
+
+            if (horse) localStorage.setItem('lastHorse', horse);
 
             fetch('/api/start', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({location, notes})
+                body: JSON.stringify({horse, location, notes})
             })
             .then(response => response.json())
             .then(data => {
-                if (data.success) updateStatus();
+                if (data.success) {
+                    // Recent horses may have changed — refresh the datalist.
+                    loadRecentHorses();
+                    updateStatus();
+                }
             });
         }
 
@@ -406,6 +434,20 @@
                 .then(data => {
                     if (data.success) document.getElementById('syncCount').textContent = '0';
                 });
+        }
+
+        // ---- Horses ----
+        async function loadRecentHorses() {
+            try {
+                const r = await fetch('/api/recent_horses');
+                const data = await r.json();
+                const list = document.getElementById('horseDatalist');
+                list.innerHTML = (data.horses || []).map(h =>
+                    `<option value="${h.replace(/"/g, '&quot;')}">`
+                ).join('');
+            } catch (e) {
+                // datalist stays empty — non-fatal
+            }
         }
 
         // ---- Protocols ----
@@ -442,6 +484,9 @@
                 ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
         }
 
+        // Candidate protocol waiting on the Horse/Location dialog to confirm.
+        let pendingProtocol = null;
+
         function startProtocolRun(protoId) {
             const proto = allProtocols.find(p => p.id === protoId);
             if (!proto) return;
@@ -449,20 +494,51 @@
                 alert('This protocol has no steps.');
                 return;
             }
+            pendingProtocol = proto;
+
+            // Pre-fill dialog from last-used values or the current Recorder inputs.
+            const lastHorse = localStorage.getItem('lastHorse') || document.getElementById('horse').value || '';
             const lastLoc = localStorage.getItem('lastProtocolLocation') || document.getElementById('location').value || 'field';
-            const location = prompt(`Location for "${proto.name}":`, lastLoc);
-            if (location === null) return;
-            const loc = location.trim() || lastLoc;
+            document.getElementById('protocolStartTitle').textContent = `Start "${proto.name}"`;
+            document.getElementById('dlgHorse').value = lastHorse;
+            document.getElementById('dlgLocation').value = lastLoc;
+
+            const dialog = document.getElementById('protocolStartDialog');
+            dialog.showModal();
+            // Focus horse input so mobile keyboard pops right up.
+            setTimeout(() => document.getElementById('dlgHorse').focus(), 0);
+        }
+
+        function cancelProtocolStart() {
+            pendingProtocol = null;
+            document.getElementById('protocolStartDialog').close();
+        }
+
+        function confirmProtocolStart() {
+            if (!pendingProtocol) return;
+            const horse = document.getElementById('dlgHorse').value.trim();
+            const loc = document.getElementById('dlgLocation').value.trim()
+                || localStorage.getItem('lastProtocolLocation') || 'field';
+
+            if (horse) localStorage.setItem('lastHorse', horse);
             localStorage.setItem('lastProtocolLocation', loc);
 
+            // Also sync the horse back into the Recorder's manual input so the
+            // value stays consistent if the user cancels the run mid-way.
+            if (horse) document.getElementById('horse').value = horse;
+
             activeRun = {
-                protocol: proto,
+                protocol: pendingProtocol,
+                horse: horse,
                 location: loc,
                 stepIndex: 0,
                 iteration: 1,
                 stepHasRecording: false,
                 stepsRecorded: 0
             };
+            pendingProtocol = null;
+
+            document.getElementById('protocolStartDialog').close();
             document.getElementById('protocolRunner').dataset.mode = 'running';
             document.getElementById('runnerIdle').style.display = 'none';
             document.getElementById('runnerActive').style.display = 'block';
@@ -539,6 +615,7 @@
                 // Start recording this step
                 const step = activeRun.protocol.steps[activeRun.stepIndex];
                 const body = {
+                    horse: activeRun.horse || '',
                     location: activeRun.location,
                     protocol_name: activeRun.protocol.name,
                     step_instruction: step.instruction,
@@ -550,6 +627,7 @@
                     body: JSON.stringify(body)
                 });
                 const data = await r.json();
+                if (data.success) loadRecentHorses();
                 if (data.success) updateStatus();
             }
         }
@@ -594,8 +672,14 @@
         }
 
         // Initialize
+        // Pre-fill horse input from localStorage before the datalist loads —
+        // the value is independent of the suggestion list.
+        const lastHorse = localStorage.getItem('lastHorse');
+        if (lastHorse) document.getElementById('horse').value = lastHorse;
+
         loadDeviceConfig()
             .then(loadProtocols)
+            .then(loadRecentHorses)
             .then(() => {
                 updateStatus();
                 setInterval(updateStatus, 1000);

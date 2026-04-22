@@ -45,6 +45,25 @@ def test_sessions_parses_protocol_run(client, isolated_paths):
     assert sessions[0]['metadata']['notes'] == 'Trot in hand down and back on soft ground'
 
 
+def test_sessions_includes_horse_when_present(client, isolated_paths):
+    client.post('/api/start', json={'location': 'arena', 'horse': 'Spicy', 'notes': 'n'})
+    client.post('/api/stop')
+
+    sessions = client.get('/api/sessions').get_json()
+    assert sessions[0]['metadata']['horse'] == 'Spicy'
+
+
+def test_sessions_omits_horse_when_absent(client, isolated_paths):
+    """Legacy CSVs with no # Horse: line render as unknown in the UI. The
+    parser must NOT emit horse=None/'' — the key is simply absent so the
+    frontend fallback ('Unknown horse') fires."""
+    client.post('/api/start', json={'location': 'arena', 'notes': 'n'})
+    client.post('/api/stop')
+
+    sessions = client.get('/api/sessions').get_json()
+    assert 'horse' not in sessions[0]['metadata']
+
+
 def test_sessions_sorted_newest_first(client, isolated_paths):
     """Filename prefix contains the timestamp; list() reverse-sorts by name.
     Make sure the ordering contract holds across multiple recordings."""

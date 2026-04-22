@@ -128,3 +128,59 @@ def test_csv_column_header_present(client, isolated_paths):
     assert non_comment == [
         'timestamp,device_id,millis_time,accel_x,accel_y,accel_z,gyro_x,gyro_y,gyro_z'
     ]
+
+
+def test_start_with_horse_emits_horse_header(client, isolated_paths):
+    client.post('/api/start', json={'location': 'arena', 'horse': 'Spicy', 'notes': 'n'})
+    client.post('/api/stop')
+
+    lines = _read_csv_header(isolated_paths['data_dir'])
+    assert any(l == '# Horse: Spicy' for l in lines)
+
+
+def test_start_without_horse_omits_horse_header(client, isolated_paths):
+    """Absence is meaningful — parser/UI renders 'Unknown horse' when missing."""
+    client.post('/api/start', json={'location': 'arena', 'notes': 'n'})
+    client.post('/api/stop')
+
+    lines = _read_csv_header(isolated_paths['data_dir'])
+    assert not any(l.startswith('# Horse:') for l in lines)
+
+
+def test_start_with_empty_horse_omits_horse_header(client, isolated_paths):
+    """Empty string is treated the same as absence."""
+    client.post('/api/start', json={'location': 'arena', 'horse': '', 'notes': 'n'})
+    client.post('/api/stop')
+
+    lines = _read_csv_header(isolated_paths['data_dir'])
+    assert not any(l.startswith('# Horse:') for l in lines)
+
+
+def test_start_trims_whitespace_from_horse(client, isolated_paths):
+    client.post('/api/start', json={'location': 'x', 'horse': '  Spicy  '})
+    client.post('/api/stop')
+
+    lines = _read_csv_header(isolated_paths['data_dir'])
+    assert any(l == '# Horse: Spicy' for l in lines)
+
+
+def test_start_horse_plus_protocol_headers_coexist(client, isolated_paths):
+    """Order guard: horse before protocol, both before the CSV column header."""
+    client.post('/api/start', json={
+        'location': 'arena',
+        'horse': 'Penny',
+        'protocol_name': 'Standard Lameness Exam',
+        'step_instruction': 'Walk in hand',
+        'iteration': 1,
+    })
+    client.post('/api/stop')
+
+    lines = _read_csv_header(isolated_paths['data_dir'])
+    # Both present.
+    assert any(l == '# Horse: Penny' for l in lines)
+    assert any(l == '# Protocol: Standard Lameness Exam' for l in lines)
+    # Horse appears before Protocol, both before the CSV column row.
+    horse_idx = next(i for i, l in enumerate(lines) if l == '# Horse: Penny')
+    protocol_idx = next(i for i, l in enumerate(lines) if l.startswith('# Protocol:'))
+    columns_idx = next(i for i, l in enumerate(lines) if l.startswith('timestamp,'))
+    assert horse_idx < protocol_idx < columns_idx

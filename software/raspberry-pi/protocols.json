@@ -1,8 +1,8 @@
 {
   "protocols": [
     {
-      "id": "proto-standard-lameness",
-      "name": "Standard Lameness Exam",
+      "id": "proto-standard-evaluation",
+      "name": "Standard Lameness Eval",
       "is_favorite": true,
       "steps": [
         {

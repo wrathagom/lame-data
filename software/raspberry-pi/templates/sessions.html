@@ -39,6 +39,16 @@
             flex: 1;
             min-width: 0;
         }
+        .session-horse {
+            font-size: 0.8rem;
+            color: var(--pico-muted-color);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.15rem;
+        }
+        .session-horse.unknown {
+            opacity: 0.5;
+        }
         .session-location {
             font-weight: bold;
             font-size: 1.1rem;
@@ -156,6 +166,11 @@
         const selected = new Set();
         let allFilenames = [];
 
+        function escapeHtml(s) {
+            return (s || '').replace(/[&<>"']/g, c =>
+                ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+
         function checkCloudStatus() {
             return fetch('/api/cloud_status')
                 .then(r => r.json())
@@ -256,11 +271,15 @@
                         const date = new Date(session.modified).toLocaleString();
                         const location = (meta.location || 'unknown').replace(/_/g, ' ');
                         const safeFilename = session.filename.replace(/'/g, "\\'");
+                        const horseLabel = meta.horse
+                            ? `<div class="session-horse">${escapeHtml(meta.horse)}</div>`
+                            : `<div class="session-horse unknown">Unknown horse</div>`;
 
                         html += `
-                            <div class="session-card" data-filename="${session.filename}" onclick="viewSession('${safeFilename}')">
+                            <div class="session-card" data-filename="${session.filename}" data-horse="${escapeHtml(meta.horse || '')}" onclick="viewSession('${safeFilename}')">
                                 <input type="checkbox" class="session-checkbox" onclick="toggleSelect('${safeFilename}', event)">
                                 <div class="session-content">
+                                    ${horseLabel}
                                     <div class="session-location">${location}</div>
                                     <div class="session-notes">${meta.notes || 'No notes'}</div>
                                     <div class="session-meta">
@@ -285,9 +304,12 @@
 
         function showUploadForm(filename) {
             const area = document.getElementById('upload-area-' + filename);
+            // Pre-fill from the CSV header if the recording captured one.
+            const card = document.querySelector(`[data-filename="${filename}"]`);
+            const prefilledHorse = (card && card.dataset.horse) || '';
             area.innerHTML = `
                 <div class="upload-form">
-                    <input type="text" id="horse-name-${filename}" placeholder="Horse name (optional)">
+                    <input type="text" id="horse-name-${filename}" placeholder="Horse name (optional)" value="${escapeHtml(prefilledHorse)}">
                     <button onclick="startUpload('${filename}')">Upload</button>
                     <button class="secondary" onclick="cancelUploadForm('${filename}')">Cancel</button>
                 </div>

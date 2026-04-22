@@ -447,6 +447,7 @@ def start_recording():
 
     data = request.json
     location = data.get('location', 'unknown')
+    horse = (data.get('horse') or '').strip()
     protocol_name = (data.get('protocol_name') or '').strip()
     step_instruction = (data.get('step_instruction') or '').strip()
     try:
@@ -472,6 +473,8 @@ def start_recording():
         f"# Start Time: {datetime.datetime.now().isoformat()}",
         f"# Device Config: {json.dumps(device_config['devices'])}",
     ]
+    if horse:
+        headers.append(f"# Horse: {horse}")
     if protocol_name:
         headers.append(f"# Protocol: {protocol_name}")
         headers.append(f"# Step Iteration: {iteration}")
@@ -535,36 +538,59 @@ def trigger_sync():
     return jsonify({'success': True})
 
 
-@app.route('/api/sessions')
-def list_sessions():
+def _scan_sessions():
+    """Return parsed session list (newest first). Shared by /api/sessions and
+    /api/recent_horses so we don't duplicate file-scan logic."""
     sessions = []
     for filename in sorted(os.listdir(DATA_DIR), reverse=True):
-        if filename.startswith('session_') and filename.endswith('.csv'):
-            filepath = os.path.join(DATA_DIR, filename)
-            
-            # Parse metadata from file
-            metadata = {}
-            with open(filepath, 'r') as f:
-                for line in f:
-                    if line.startswith('# Location:'):
-                        metadata['location'] = line.split(':', 1)[1].strip()
-                    elif line.startswith('# Notes:'):
-                        metadata['notes'] = line.split(':', 1)[1].strip()
-                    elif line.startswith('# Start Time:'):
-                        metadata['start_time'] = line.split(':', 1)[1].strip()
-                    elif line.startswith('# Total Samples:'):
-                        metadata['samples'] = line.split(':', 1)[1].strip()
-                    elif not line.startswith('#'):
-                        break
-            
-            stat = os.stat(filepath)
-            sessions.append({
-                'filename': filename,
-                'size': stat.st_size,
-                'modified': datetime.datetime.fromtimestamp(stat.st_mtime).isoformat(),
-                'metadata': metadata
-            })
-    return jsonify(sessions)
+        if not (filename.startswith('session_') and filename.endswith('.csv')):
+            continue
+        filepath = os.path.join(DATA_DIR, filename)
+
+        metadata = {}
+        with open(filepath, 'r') as f:
+            for line in f:
+                if line.startswith('# Location:'):
+                    metadata['location'] = line.split(':', 1)[1].strip()
+                elif line.startswith('# Notes:'):
+                    metadata['notes'] = line.split(':', 1)[1].strip()
+                elif line.startswith('# Start Time:'):
+                    metadata['start_time'] = line.split(':', 1)[1].strip()
+                elif line.startswith('# Horse:'):
+                    metadata['horse'] = line.split(':', 1)[1].strip()
+                elif line.startswith('# Total Samples:'):
+                    metadata['samples'] = line.split(':', 1)[1].strip()
+                elif not line.startswith('#'):
+                    break
+
+        stat = os.stat(filepath)
+        sessions.append({
+            'filename': filename,
+            'size': stat.st_size,
+            'modified': datetime.datetime.fromtimestamp(stat.st_mtime).isoformat(),
+            'metadata': metadata
+        })
+    return sessions
+
+
+@app.route('/api/sessions')
+def list_sessions():
+    return jsonify(_scan_sessions())
+
+
+@app.route('/api/recent_horses')
+def recent_horses():
+    """Distinct horse names from recent sessions, newest first, case-insensitive dedup."""
+    seen = []
+    seen_lower = set()
+    for session in _scan_sessions()[:100]:
+        name = (session.get('metadata') or {}).get('horse')
+        if name and name.lower() not in seen_lower:
+            seen_lower.add(name.lower())
+            seen.append(name)
+            if len(seen) >= 10:
+                break
+    return jsonify({'horses': seen})
 
 @app.route('/api/session_data/<filename>')
 def get_session_data(filename):
@@ -577,8 +603,10 @@ def get_session_data(filename):
     with open(filepath, 'r') as f:
         lines = f.readlines()
 
-    # Extract device config from header
+    # Extract device config and horse name from header. These travel with the
+    # response so the session viewer can show who the recording was for.
     device_config = {}
+    horse = None
     for line in lines:
         if line.startswith('# Device Config:'):
             try:
@@ -586,6 +614,9 @@ def get_session_data(filename):
                 device_config = json.loads(config_json)
             except (json.JSONDecodeError, IndexError):
                 pass
+        elif line.startswith('# Horse:'):
+            horse = line.split(':', 1)[1].strip()
+        elif not line.startswith('#'):
             break
 
     # Find where data starts
@@ -652,7 +683,8 @@ def get_session_data(filename):
     return jsonify({
         'devices': devices,
         'device_config': device_config,
-        'sample_count': sample_count
+        'sample_count': sample_count,
+        'horse': horse,
     })
 
 

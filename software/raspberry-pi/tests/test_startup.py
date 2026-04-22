@@ -37,6 +37,7 @@ EXPECTED_ROUTES = {
     '/api/sync',
     '/api/sessions',
     '/api/session_data/<filename>',
+    '/api/recent_horses',
     # Management
     '/api/download/<filename>',
     '/api/download_batch',

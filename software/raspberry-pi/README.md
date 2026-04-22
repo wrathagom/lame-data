@@ -75,9 +75,10 @@ sudo systemctl start horse-recorder wifi-manager
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/status` | GET | Current recording flag, device status, samples received |
-| `/api/start` | POST | Begin a recording. Body: `{location, notes}` for a manual run, or `{location, protocol_name, step_instruction, iteration}` when run from a protocol |
+| `/api/start` | POST | Begin a recording. Body: `{location, notes, horse}` for a manual run, or `{location, horse, protocol_name, step_instruction, iteration}` when run from a protocol. `horse` is optional. |
 | `/api/stop` | POST | End the current recording |
 | `/api/sync` | POST | Re-broadcast the time-sync packet to sensors mid-recording |
+| `/api/recent_horses` | GET | Distinct horse names from recent sessions (newest first, case-insensitive dedup, capped at 10). Powers the Recorder's horse autocomplete |
 
 ### Protocols
 | Endpoint | Method | Description |
@@ -125,6 +126,7 @@ Each recording writes a `session_YYYYMMDD_HHMMSS.csv` containing a comment heade
 # Notes: <user-provided OR step instruction when run from a protocol>
 # Start Time: <ISO 8601>
 # Device Config: <JSON of id → {position, color}>
+# Horse: <name>                        (only when horse field provided)
 # Protocol: <protocol name>            (only when run from a protocol)
 # Step Iteration: <N>                  (only when run from a protocol)
 timestamp,device_id,millis_time,accel_x,accel_y,accel_z,gyro_x,gyro_y,gyro_z

@@ -374,7 +374,15 @@
                         return;
                     }
 
-                    document.getElementById('sessionTitle').textContent = filename;
+                    // Title line: horse name leads if captured, filename follows.
+                    const titleEl = document.getElementById('sessionTitle');
+                    if (data.horse) {
+                        titleEl.innerHTML =
+                            `${data.horse.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))} ` +
+                            `<small style="color:var(--pico-muted-color); font-weight:normal; font-size:0.8rem;">${filename}</small>`;
+                    } else {
+                        titleEl.textContent = filename;
+                    }
 
                     // Check if this is multi-device data or legacy single-device
                     const isMultiDevice = data.devices !== undefined;
