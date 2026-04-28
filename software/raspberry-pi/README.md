@@ -42,6 +42,8 @@ Edit `.env` to configure:
 | DATA_DIR | `./data` | Where session CSVs are saved |
 | CLOUD_URL | `` (disabled) | Base URL of the cloud ingest endpoint |
 | CLOUD_API_KEY | `` (disabled) | API key passed on cloud uploads |
+| OTA_PASSWORD | (auto-generated) | Shared secret used by the Pi's `espota.py` calls. Must match each stick's `otaPassword` in `config.h` |
+| FIRMWARE_FQBN | `m5stack:esp32:m5stack_stickc_plus` | arduino-cli board ID. Override only if your M5Stack core uses a different ID — find it with `arduino-cli board listall m5stack:esp32` |
 
 Runtime state lives in two JSON files next to `horse_recorder.py`. **Both are gitignored** — they're per-Pi mutable state, not code:
 

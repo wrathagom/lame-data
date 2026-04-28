@@ -36,8 +36,13 @@ BUILD_DIR = SCRIPT_DIR / 'firmware'
 FIRMWARE_BIN = BUILD_DIR / 'horse_sensor.bin'
 
 # Fully-qualified board name that arduino-cli expects for the M5StickC Plus
-# M5Stack core. The m5stack ESP32 core package exposes this board id.
-FQBN = 'm5stack:esp32:m5stick_c_plus'
+# M5Stack core. Different versions of the M5Stack ESP32 core have used
+# slightly different board IDs over time (m5stick-c-plus, m5stickc_plus,
+# m5stack_stickc_plus). If yours doesn't compile with the default, find the
+# right value with:
+#   arduino-cli board listall m5stack:esp32 | grep -i stick
+# and override via FIRMWARE_FQBN in the Pi's .env file — no code change.
+FQBN = os.getenv('FIRMWARE_FQBN', 'm5stack:esp32:m5stack_stickc_plus')
 
 # Regex that pulls the FIRMWARE_VERSION constant out of the .ino source. Lives
 # here, not scattered across modules, so a version-scheme change is one edit.
