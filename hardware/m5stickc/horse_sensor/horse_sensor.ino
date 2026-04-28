@@ -9,7 +9,7 @@
 // Bump this when shipping a firmware-affecting change. The Pi reads this
 // string verbatim from the source file and compares it against what each
 // stick reports over BAT to drive the fleet-update banner.
-const char* FIRMWARE_VERSION = "1.0.3";
+const char* FIRMWARE_VERSION = "1.0.4";
 
 // Device ID derived from hardware MAC address
 String deviceID;
@@ -75,6 +75,33 @@ bool isUsbPowered() {
 // Distinct from "plugged in but already full" — useful for accurate labeling.
 bool isChargingActive() {
   return (M5.Axp.Read8bit(0x01) & 0x40) != 0;
+}
+
+// Battery percentage from the AXP's voltage reading. Linear voltage→% by
+// itself underestimates a fully charged battery: the AXP charges the cell
+// to 4.2 V, then enters maintenance mode where the resting voltage settles
+// to 4.10–4.18 V, which our linear formula reads as 92–98%. When the AXP
+// reports plugged-in-but-not-actively-charging, trust it: that's
+// "charged," show 100%. Sanity floor of 80% guards against the brief moment
+// after plug-in when a low battery hasn't started actively charging yet.
+float computeBatteryPercent() {
+  float battVoltage = M5.Axp.GetBatVoltage();
+  float pct = (battVoltage - 3.0) / (4.2 - 3.0) * 100;
+  if (pct > 100) pct = 100;
+  if (pct < 0) pct = 0;
+  if (isUsbPowered() && !isChargingActive() && pct > 80) {
+    pct = 100;
+  }
+  return pct;
+}
+
+// Three concentric top-half arcs + a dot at the base — the classic WiFi
+// signal-strength glyph, sized to share a row with the SSID text.
+void drawWifiIcon(int cx, int by, uint16_t color) {
+  M5.Lcd.drawCircleHelper(cx, by, 3, 0x03, color);
+  M5.Lcd.drawCircleHelper(cx, by, 5, 0x03, color);
+  M5.Lcd.drawCircleHelper(cx, by, 7, 0x03, color);
+  M5.Lcd.fillRect(cx - 1, by - 1, 3, 2, color);
 }
 
 // Draw a battery icon with percent fill + a charging bolt to the right when
@@ -278,6 +305,7 @@ void showStatus() {
   M5.Lcd.fillScreen(BLACK);
   M5.Lcd.setRotation(0);  // UPDATED TO ROTATION 0
   M5.Lcd.setTextSize(2);
+  M5.Lcd.setTextWrap(false);  // long SSIDs clip at the screen edge instead of wrapping onto the next row
 
   // Display Device Info
   M5.Lcd.setCursor(10, 20);
@@ -292,11 +320,7 @@ void showStatus() {
   // fill color encodes level (green/orange/red) and the bolt to the right
   // signals "USB power present" — replaces the old text-only "Batt: NN%"
   // line and the separate "Charging/Charged" line below it.
-  float battVoltage = M5.Axp.GetBatVoltage();
-  float battPercent = (battVoltage - 3.0) / (4.2 - 3.0) * 100;
-  if (battPercent > 100) battPercent = 100;
-  if (battPercent < 0) battPercent = 0;
-
+  float battPercent = computeBatteryPercent();
   bool plugged = isUsbPowered();
   drawBatteryIcon(10, 82, (int)battPercent, plugged);
 
@@ -310,15 +334,21 @@ void showStatus() {
   M5.Lcd.setTextColor(pctColor);
   M5.Lcd.printf("%.0f%%", battPercent);
 
-  // Display connection status and network name
-  M5.Lcd.setCursor(10, 110);
+  // WiFi icon + SSID (or "No WiFi"). The icon takes ~14 px, leaving room
+  // for ~8 chars of SSID at text size 2 before clipping at the right edge.
+  uint16_t wifiColor;
+  const char* ssidText;
   if (WiFi.status() == WL_CONNECTED && connectedNetworkIndex >= 0) {
-    M5.Lcd.setTextColor(GREEN);
-    M5.Lcd.printf("%s", networks[connectedNetworkIndex].ssid);
+    wifiColor = GREEN;
+    ssidText = networks[connectedNetworkIndex].ssid;
   } else {
-    M5.Lcd.setTextColor(RED);
-    M5.Lcd.print("No WiFi");
+    wifiColor = RED;
+    ssidText = "No WiFi";
   }
+  drawWifiIcon(18, 122, wifiColor);
+  M5.Lcd.setCursor(30, 110);
+  M5.Lcd.setTextColor(wifiColor);
+  M5.Lcd.print(ssidText);
 
   // Sample-loss counter — short label so it fits on one row.
   if (fifoOverflows > 0) {
@@ -543,9 +573,7 @@ void sendBatch() {
 
 void sendBatteryStatus() {
   float battVoltage = M5.Axp.GetBatVoltage();
-  float battPercent = (battVoltage - 3.0) / (4.2 - 3.0) * 100;
-  if (battPercent > 100) battPercent = 100;
-  if (battPercent < 0) battPercent = 0;
+  float battPercent = computeBatteryPercent();
 
   // Report "charging" as 1 when VBUS is present AND the battery is actively
   // taking charge. The Pi parser is backwards-compatible and treats the field
