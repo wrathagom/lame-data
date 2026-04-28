@@ -270,26 +270,42 @@ def flash_device(device_id, device_ip, password, progress_callback=None):
         )
 
     cmd = [
-        'python3', str(espota),
+        'python3', '-u', str(espota),  # -u: unbuffered, so progress reaches us in real time
         '--ip', device_ip,
         '--auth', password,
         '--file', str(FIRMWARE_BIN),
+        '--progress',                    # without this espota emits no per-byte updates
     ]
     proc = subprocess.Popen(
         cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-        text=True, bufsize=1,
+        text=True, bufsize=0,
     )
 
+    # espota draws its progress bar with `\r` (overwriting in place) rather
+    # than `\n`, so iterating with `for line in proc.stdout` only sees the
+    # final state. Read char-by-char and split on either CR or LF so every
+    # repaint becomes a parseable token.
     last_pct = -1
     last_line = ''
-    for line in proc.stdout or []:
-        last_line = line.rstrip()
-        m = _ESPOTA_PROGRESS_RE.search(line)
-        if m:
-            pct = int(m.group(1))
-            if pct != last_pct and progress_callback:
-                progress_callback(pct)
-                last_pct = pct
+    buf = ''
+    while True:
+        ch = proc.stdout.read(1) if proc.stdout else ''
+        if not ch:
+            break
+        if ch in ('\r', '\n'):
+            if buf:
+                last_line = buf
+                m = _ESPOTA_PROGRESS_RE.search(buf)
+                if m:
+                    pct = int(m.group(1))
+                    if pct != last_pct and progress_callback:
+                        progress_callback(pct)
+                        last_pct = pct
+                buf = ''
+        else:
+            buf += ch
+    if buf:
+        last_line = buf
 
     rc = proc.wait(timeout=120)
     if rc != 0:
