@@ -285,7 +285,7 @@ void showStatus() {
     M5.Lcd.printf("%s", networks[connectedNetworkIndex].ssid);
   } else {
     M5.Lcd.setTextColor(RED);
-    M5.Lcd.print("Disconnected");
+    M5.Lcd.print("No WiFi");
   }
 
   // Charging status — only shown when USB is plugged in.
