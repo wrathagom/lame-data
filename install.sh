@@ -72,9 +72,10 @@ if [ "$SKIP_ENV_CONFIG" = false ]; then
         CLOUD_API_KEY=${CLOUD_API_KEY:-}
     fi
 
-    # Generate a random OTA_PASSWORD for wireless firmware updates. Stable
-    # across reconfigures so already-flashed sticks keep working.
-    OTA_PASSWORD=$(openssl rand -hex 16 2>/dev/null || head -c 16 /dev/urandom | xxd -p)
+    # OTA_PASSWORD for wireless firmware updates. Honors a pre-set value so
+    # you can pass `sudo OTA_PASSWORD=horsey ./install.sh` and skip the
+    # auto-generated 32-char hex blob (overkill for a LAN-only barn setup).
+    OTA_PASSWORD="${OTA_PASSWORD:-$(openssl rand -hex 16 2>/dev/null || head -c 16 /dev/urandom | xxd -p)}"
 
     # Write .env file
     cat > "$PI_DIR/.env" << EOF
@@ -107,9 +108,11 @@ EOF
 fi
 
 # Preserve OTA_PASSWORD across reconfigures — if someone re-ran and chose to
-# keep the old .env, make sure it has an OTA_PASSWORD line.
+# keep the old .env, make sure it has an OTA_PASSWORD line. Honors a pre-set
+# env var so `sudo OTA_PASSWORD=mypw ./install.sh` works even on the backfill
+# path (e.g. when you're adding it to an already-installed Pi).
 if [ -f "$PI_DIR/.env" ] && ! grep -q "^OTA_PASSWORD=" "$PI_DIR/.env"; then
-    OTA_PASSWORD=$(openssl rand -hex 16 2>/dev/null || head -c 16 /dev/urandom | xxd -p)
+    OTA_PASSWORD="${OTA_PASSWORD:-$(openssl rand -hex 16 2>/dev/null || head -c 16 /dev/urandom | xxd -p)}"
     echo "OTA_PASSWORD=$OTA_PASSWORD" >> "$PI_DIR/.env"
     echo "  Added OTA_PASSWORD=$OTA_PASSWORD to existing .env"
 fi
