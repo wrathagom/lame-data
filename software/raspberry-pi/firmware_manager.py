@@ -192,6 +192,12 @@ def build_bin():
     cmd = [
         'arduino-cli', 'compile',
         '--fqbn', FQBN,
+        # Force a partition scheme that includes a second app slot. The
+        # M5Stack core's default for the M5StickC Plus is `huge_app` — one
+        # 3 MB app partition with no OTA slot, which silently breaks OTA at
+        # Update.begin(). `min_spiffs` gives ~1.9 MB per app slot, plenty
+        # for our 1 MB image and future growth.
+        '--build-property', 'build.partitions=min_spiffs',
         '--output-dir', str(BUILD_DIR),
         str(FIRMWARE_SRC_DIR),
     ]
