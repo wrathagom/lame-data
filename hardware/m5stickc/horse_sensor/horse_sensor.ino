@@ -9,7 +9,7 @@
 // Bump this when shipping a firmware-affecting change. The Pi reads this
 // string verbatim from the source file and compares it against what each
 // stick reports over BAT to drive the fleet-update banner.
-const char* FIRMWARE_VERSION = "1.0.1";
+const char* FIRMWARE_VERSION = "1.0.2";
 
 // Device ID derived from hardware MAC address
 String deviceID;
@@ -525,11 +525,19 @@ void sendBatteryStatus() {
   // Report "charging" as 1 when VBUS is present AND the battery is actively
   // taking charge. The Pi parser is backwards-compatible and treats the field
   // as optional (defaults to 0) so old firmware still parses cleanly.
-  int charging = (isUsbPowered() && isChargingActive()) ? 1 : 0;
+  int charging = isUsbPowered() ? 1 : 0;
 
   // Field 7 is the running firmware version string so the Pi can detect
   // fleet-wide drift. Older Pi code (pre-firmware-manager) just ignored
   // trailing unknown fields.
+  //
+  // Field 6 ("charging") reports USB-power-present, NOT
+  // battery-actively-charging. The Pi gates OTA flash on this — the relevant
+  // safety signal is "is the stick getting external power right now" so a
+  // mid-flash brownout can't brick it. A topped-off battery on the hub still
+  // counts as charging:1 here, even though the AXP charging bit goes false
+  // once the battery is full. The LCD's "Charging" vs "Charged" label is a
+  // separate, finer distinction; only the BAT field affects OTA gating.
   char buffer[128];
   snprintf(buffer, sizeof(buffer), "BAT,%s,%.2f,%.0f,%lu,%d,%s",
            deviceID.c_str(), battVoltage, battPercent, fifoOverflows, charging,
