@@ -223,6 +223,12 @@ else
         else
             echo "  M5Stack ESP32 core already installed"
         fi
+
+        # Firmware library dependencies. The board core alone doesn't include
+        # the M5StickCPlus headers — without these the .ino won't compile.
+        # arduino-cli lib install is idempotent so safe to rerun.
+        echo "  Installing Arduino library dependencies..."
+        sudo -u "$REPO_OWNER_FW" arduino-cli lib install "M5StickCPlus"
     fi
 fi
 
